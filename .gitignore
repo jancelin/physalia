@@ -1,0 +1,11 @@
+*.pyc
+*~
+rtkrcv.nav
+.vscode/*
+/logs/*
+settings.conf
+/data/*
+/log/*
+test.sh
+test.conf
+*.FCStd1

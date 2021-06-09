@@ -1,0 +1,112 @@
+# settings for run_cast.sh
+
+[general]
+# Version
+version=2.2.0
+# Rtkbase upgrade mandatory "checkpoint"
+checkpoint_version=2.3.0
+# User who runs str2str_file service
+user=
+# NTRIP caster program
+BASEDIR=$(dirname "$0")
+#path to the caster application
+cast=/usr/local/bin/str2str
+#set true if you want to enter a password to open the web gui.
+web_authentification=false
+#enter here your new password for web gui 
+#(it will be erased during the next web server start)
+new_web_password=
+#don't touch this one
+web_password_hash=pbkdf2:sha256:150000$kWdEE8eU$d30b1a75e5cf898684bad60b47a45a8058b6c33535560be005b6e0110b947cf6
+#key needed to add an aerial image layer
+maptiler_key=
+
+[main]
+#base coordinates: lat long height
+position='46.142657314 -1.157516753 66.969'
+#gnss receiver com port
+com_port='ttyAMA0'
+#gnss receiver com port settings
+com_port_settings='115200:8:n:1'
+#receiver model
+receiver='Ublox_ZED-F9P'
+#gnss receiver format
+receiver_format='ubx'
+#Antenna info, id, serial number. Without space inside the strings
+antenna_info='DA910'
+#tcp port for RAW stream. If you change this value, edit gpsd conf file to reflect the port in DEVICES.
+tcp_port='5015'
+#ext_tcp_source is mainly for dev purpose to receive a raw stream from another base
+ext_tcp_source=''
+
+[local_storage]
+
+# File options for local data storage
+
+#gnss data storage directory
+datadir=$BASEDIR/data
+#gnss data filename	    
+file_name='%Y-%m-%d_%h-%M-%S_ROVER_logs-UBX'
+#file rotate time in hour
+file_rotate_time='24'
+#file overlap time in seconds
+file_overlap_time='30'
+#name for the compressed archive
+archive_name=$(date -d "-1 days" +"%Y-%m-%d_%S_ROVER_logs").zip
+#archives older than this value (in days) will be deleted by archive_and_clean.sh
+archive_rotate='60'
+#minum free space on device (in MB) before oldest archives are deleted
+min_free_space='500'
+
+[ntrip]
+
+# NTRIP caster options
+
+#ntrip caster url
+svr_addr='caster.centipede.fr'
+#ntrip caster port
+svr_port='2101'
+#ntrip caster password
+svr_pwd=''
+#Mount name
+mnt_name='BOUY'
+rtcm_msg='1004,1005(10),1006,1008(10),1012,1019,1020,1033(10),1042,1045,1046,1077,1087,1097,1107,1127,1230'
+#Receiver dependent options
+ntrip_receiver_options=''
+
+[rtcm_svr]
+
+# RTCM server options
+
+#port for rtcm local use
+rtcm_svr_port='5016'
+#messages for rtcm local use
+rtcm_svr_msg='1004,1005(10),1006,1008(10),1012,1019,1020,1033(10),1042,1045,1046,1077,1087,1097,1107,1127,1230'
+#Receiver dependent options
+rtcm_receiver_options=''
+
+[rtcm_serial]
+
+# Serial output RTCM options
+
+#serial output for rtcm local use
+out_com_port=''
+#serial output settings
+out_com_port_settings='115200:8:n:1'
+#messages for rtcm local use
+rtcm_serial_msg='1004,1005(10),1006,1008(10),1012,1019,1020,1033(10),1042,1045,1046,1077,1087,1097,1107,1127,1230'
+#Receiver dependent options
+rtcm_serial_receiver_options=''
+
+[log]
+
+#log directory
+logdir=$BASEDIR/logs
+#log trace level (0: no trace)
+level=0
+
+[send]
+
+send_id='buoy_test'
+send_ip='127.0.0.1'
+send_port='8090'
