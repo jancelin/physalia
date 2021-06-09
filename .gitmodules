@@ -1,3 +1,7 @@
 [submodule "buoy/-b"]
 	path = buoy/-b
 	url = https://github.com/jancelin/rtkbase
+[submodule "RTKrover"]
+	path = buoy/rtkbase
+	url = https://github.com/jancelin/rtkbase
+	branch = dev_rtkrover
