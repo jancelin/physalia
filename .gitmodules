@@ -1,0 +1,3 @@
+[submodule "buoy/-b"]
+	path = buoy/-b
+	url = https://github.com/jancelin/rtkbase
