@@ -1,6 +1,6 @@
 # PHYSALIA
 
-## Plateforme HYbride pour la Surveillance Altimétrique du LIttoral
+## Plateforme HYdrographique pour la Surveillance Altimétrique du LIttoral
 ![buoy1_small](https://user-images.githubusercontent.com/6421175/121193428-20f7ca80-c86e-11eb-9353-d99511f2edb5.png)
 
 La surveillance du niveau de la mer et des marais est un enjeu majeur dans la compréhension des dynamiques côtières et hydrologiques. Plusieurs études ont montré l’efficacité des bouées GNSS appliquées à la mesure du niveau de la mer. Toutefois, leur usage est généralement limité par le coût élevé d’un tel
