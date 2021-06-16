@@ -1,0 +1,8 @@
+FROM python:3
+LABEL "CC BY-NC-SA 3.0 FR"="julien.ancelin@inrae.fr"
+
+WORKDIR /usr/src/app
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+CMD [ "python", "./server_buoy.py" ]
