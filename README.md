@@ -1,4 +1,4 @@
-# PHYSALIA
+# PHYSALIE
 
 ## Plateforme HYdrographique pour la Surveillance Altimétrique du LIttoral
 ![buoy1_small](https://user-images.githubusercontent.com/6421175/121193428-20f7ca80-c86e-11eb-9353-d99511f2edb5.png)
