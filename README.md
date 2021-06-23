@@ -1,3 +1,4 @@
+
 # PHYSALIA 
 <p align="center">
   <img src="https://github.com/jancelin/physalia/blob/main/doc/assets/physalia_carre_100px.png">
@@ -16,7 +17,7 @@ Les bouées ont été construites autour d’une structure centrale imprimée en
 
 Des essais réalisés sur l’île d’Aix (France) ont permis d’évaluer la précision des bouées en comparant les données obtenues avec celles d’un marégraphe radar. La comparaison est réalisée avec les données corrigées en temps réel et celles corrigées en post-traitement. Les résultats obtenus montrent une erreur quadratique moyenne (RMSE) comprise entre 1,93 et 3,03 cm validant ainsi l’utilisation des bouées GNSS-RTK développée de manière économique pour un usage marégraphique.
 
-![buoy_small](https://user-images.githubusercontent.com/6421175/121193440-25bc7e80-c86e-11eb-95a2-a34d9fa0d071.png)
+![VID_20210526_131756](https://user-images.githubusercontent.com/6421175/123070138-c9cc2b00-d413-11eb-9d8e-3b214ef0bcf7.gif)
 ![monitoring_small](https://user-images.githubusercontent.com/6421175/121193450-281ed880-c86e-11eb-855a-5cee7dc6ea80.png)
 ![partenaires](https://user-images.githubusercontent.com/6421175/121195306-c6f80480-c86f-11eb-92a4-7ca271be2f45.png)
 
