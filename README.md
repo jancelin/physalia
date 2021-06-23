@@ -1,6 +1,6 @@
 # PHYSALIA 
 <p align="center">
-  <img src="https://github.com/jancelin/physalia/blob/main/doc/assets/physalia_carre_300px.png">
+  <img src="https://github.com/jancelin/physalia/blob/main/doc/assets/physalia_carre_100px.png">
 </p>
  
 
