@@ -1,3 +1,7 @@
+# Design
+
+![Serveur_data](https://user-images.githubusercontent.com/6421175/124486146-95f6eb00-ddad-11eb-9f05-691d740e1e80.jpg)
+
 
 # prérequis
 
