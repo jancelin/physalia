@@ -1,0 +1,34 @@
+ github: [metadata]
+ name: Centipede
+ encoding: UTF-8
+ kramdown:
+   input: GFM
+   hard_wrap: false
+ future: true
+ jailed: false
+ #theme: jekyll-theme-leap-day
+ remote_theme: pmarsceill/just-the-docs
+ gfm_quirks: paragraph_end
+
+ title: PHYSALIA
+ email: julien.ancelin@inrae.fr
+ description: Plateforme HYdrographique pour la Surveillance Altimétrique du LIttoral
+ logo: "/assets/images/physalia_carre_100px.png"
+ footer_content: "2021 INRAE-LIENSs/ Julien Ancelin. Distributed by an <a href=\"https://creativecommons.org/licenses/by-nc-sa/3.0/fr/legalcode\">CC BY-NC-SA 3.0 FR license.</a>"
+
+# Enable or disable the site search
+ search_enabled: true
+
+# Set the search token separator for hyphenated-word search:
+ search_tokenizer_separator: /[\s/]+/
+
+# Enable or disable heading anchors
+ heading_anchors: true
+
+# Aux links for the upper right navigation
+ aux_links:
+   "CentipedeRTK GitHub":
+     - "//github.com/jancelin/physalia"
+
+
+theme: jekyll-theme-midnight
