@@ -14,7 +14,7 @@
  email: julien.ancelin@inrae.fr
  description: Plateforme HYdrographique pour la Surveillance Altimétrique du LIttoral
  logo: "/assets/images/physalia_carre_100px.png"
- footer_content: "2021 INRAE-LIENSs/ Julien Ancelin. Distributed by an <a href=\"https://creativecommons.org/licenses/by-nc-sa/3.0/fr/legalcode\">CC BY-NC-SA 3.0 FR license.</a>"
+ footer_content: "2021 LIENSs-INRAe. Distributed by an <a href=\"https://creativecommons.org/licenses/by-nc-sa/3.0/fr/legalcode\">CC BY-NC-SA 3.0 FR license.</a>"
 
 # Enable or disable the site search
  search_enabled: true
@@ -27,7 +27,7 @@
 
 # Aux links for the upper right navigation
  aux_links:
-   "CentipedeRTK GitHub":
+   "Physalia GitHub":
      - "//github.com/jancelin/physalia"
 
 
