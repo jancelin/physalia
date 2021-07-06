@@ -55,4 +55,4 @@ nav_order: 1
 
 ![buoy](/assets/buoy/buoy_materiel.png)
 
-<script src="https://github.com/jancelin/physalia/blob/main/buoy/Printed-Parts/STL/physalia_v1_7.stl"></script>
+![3d](https://github.com/jancelin/physalia/blob/main/buoy/Printed-Parts/STL/physalia_v1_7.stl)
