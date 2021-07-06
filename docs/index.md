@@ -5,7 +5,7 @@ nav_order: 1
 has_children: true
 ---
 
-# PHYSALIA  ![logo](/assets/physalia_carre_100px.png)
+# PHYSALIA
 
 ## Plateforme HYdrographique pour la Surveillance Altimétrique du LIttoral 
 
