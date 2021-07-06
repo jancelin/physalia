@@ -53,6 +53,31 @@ nav_order: 1
 |||||
 ||||617,53 €|
 
+## Assemblage electronique
+
 ![buoy](/assets/buoy/buoy_materiel.png)
 
-![3d](https://github.com/jancelin/physalia/blob/main/buoy/Printed-Parts/STL/physalia_v1_7.stl)
+## Impression 3D
+
+![buoy3d](/assets/buoy/buoy_print_detail.png)
+
+![Impression 3d Prusaprinters](https://www.prusaprinters.org/fr/prints/67146-tripod-buoy-physalia)
+
+![Impression 3d](https://github.com/jancelin/physalia/blob/main/buoy/Printed-Parts/STL/physalia_v1_7.stl)
+
+![buoy3d](/assets/buoy/buoy_print.png)
+
+## Montage
+
+![buoyinside](/assets/buoy/buoy_inside1.jpg)
+
+![buoyinside](/assets/buoy/buoy_inside2.jpg)
+
+![buoyunder](/assets/buoy/buoy_under.png)
+
+![buoy](/assets/buoy/buoy_minimes3.png)
+
+
+
+
+

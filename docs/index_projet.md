@@ -32,7 +32,7 @@ nav_order: 1
 
 ## Fil de discussion Télégram
 
-https://t.me/joinchat/IU2Yq-MmF5Q0Nzg0
+[Telegram LIENSs/INRAe Physalia](https://t.me/joinchat/IU2Yq-MmF5Q0Nzg0)
 
 ## Documents
 

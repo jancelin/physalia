@@ -9,7 +9,9 @@ has_children: true
 
 ## Architecture
 
-![archi server](/assets/mindmap/Serveur_data.jpg)
+[architecture serveur](/assets/mindmap/Serveur_data.jpg)
+
+![architecture serveur](/assets/mindmap/Serveur_data.jpg)
 
 
 ## Prérequis
