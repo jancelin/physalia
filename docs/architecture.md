@@ -9,10 +9,10 @@ nav_order: 1
 
 ## Buoy
 
-[archi_buoy](/assets/mindmap/BaseRtk_modeRover.jpg)
+[archi buoy](/assets/mindmap/BaseRtk_modeRover.jpg)
 
 ## Serveur
 
-[archi_server](/assets/mindmap/serveur_data.jpg)
+[archi server](/assets/mindmap/Serveur_data.jpg)
 
 ## Analyse
