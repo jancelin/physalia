@@ -52,3 +52,7 @@ nav_order: 1
 |Gaine thermorétractable 9mm au mètre|3,61 €|0,08|0,29 €|
 |||||
 ||||617,53 €|
+
+![buoy](/assets/buoy/buoy_materiel.png)
+
+<script src="https://github.com/jancelin/physalia/blob/main/buoy/Printed-Parts/STL/physalia_v1_7.stl"></script>

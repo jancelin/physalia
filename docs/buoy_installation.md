@@ -54,7 +54,7 @@ Par mesure de prudence, s'assurer que la configuration est bien enregistrée :
 
 ### 3. Télécharger l'image pour Raspberry Pi
 
-Télécharger l'image pour Raspberry Pi de Base RTK sur votre ordinateur (~ 560 Mo) : [BaseGNSS-RPi-2.2.0](https://github.com/jancelin/rtkbase/releases/download/RTKroverGNSS_1_0_0/RTKroverGNSS_1_0_0.zip). 
+Télécharger l'image pour Raspberry Pi de Base RTK sur votre ordinateur (~ 560 Mo) : [RTKroverGNSS_1_0_0](https://github.com/jancelin/rtkbase/releases/download/RTKroverGNSS_1_0_0/RTKroverGNSS_1_0_0.zip). 
 
 **Attention**, ne pas copier directement l'image RTKroverGNSS_X.X.X.zip sur la carte micro SD !!!
 
