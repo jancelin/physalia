@@ -65,6 +65,8 @@ nav_order: 1
 
 [Impression 3d](https://github.com/jancelin/physalia/blob/main/buoy/Printed-Parts/STL/physalia_v1_7.stl)
 
+[Carte mondiale des imprimantes disponibles](https://www.prusaprinters.org/fr/world)
+
 ![buoy3d](/assets/buoy/buoy_print.png)
 
 ## Montage
