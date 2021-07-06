@@ -61,9 +61,9 @@ nav_order: 1
 
 ![buoy3d](/assets/buoy/buoy_print_detail.png)
 
-![Impression 3d Prusaprinters](https://www.prusaprinters.org/fr/prints/67146-tripod-buoy-physalia)
+[Impression 3d Prusaprinters](https://www.prusaprinters.org/fr/prints/67146-tripod-buoy-physalia)
 
-![Impression 3d](https://github.com/jancelin/physalia/blob/main/buoy/Printed-Parts/STL/physalia_v1_7.stl)
+[Impression 3d](https://github.com/jancelin/physalia/blob/main/buoy/Printed-Parts/STL/physalia_v1_7.stl)
 
 ![buoy3d](/assets/buoy/buoy_print.png)
 
