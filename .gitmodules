@@ -5,3 +5,7 @@
 	path = buoy/rtkbase
 	url = https://github.com/jancelin/rtkbase
 	branch = dev_rtkrover
+[submodule "PiGen_make_image"]
+	path = buoy/pi-gen_RTKbase
+	url = https://github.com/jancelin/pi-gen_RTKbase
+	branch = roverGNSS_0_1
