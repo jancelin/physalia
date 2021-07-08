@@ -1,7 +1,8 @@
+##Build
 #docker build -t physalia_buoy .
-
+##Run as demon
 #docker run -d --privileged --rm --name buoy -p 1234:80 -v /dev:/dev physalia_buoy
-
+##Debug RUN
 #docker run -it --privileged --rm  -p 1234:80 -v /dev:/dev physalia_buoy /sbin/init
 #-------------------------------------------------------------------------------------
 FROM debian:latest
