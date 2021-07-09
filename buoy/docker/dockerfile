@@ -4,6 +4,8 @@
 #docker run -d --privileged --rm --name buoy -p 1234:80 -v /dev:/dev physalia_buoy
 ##Debug RUN
 #docker run -it --privileged --rm  -p 1234:80 -v /dev:/dev physalia_buoy /sbin/init
+##Debug inside container
+#docker exec -it buoy bash
 #-------------------------------------------------------------------------------------
 FROM debian:latest
 LABEL "GNU Affero General Public License v3 (AGPL-3.0)"="julien.ancelin@inrae.fr"
@@ -14,7 +16,9 @@ RUN wget https://raw.githubusercontent.com/jancelin/rtkbase/dev_rtkrover/tools/i
 RUN find ./ -type f -iname "*.sh" -exec chmod +x {} \;
 RUN sed -i -e "s/\$(logname)/root/g" ./install.sh
 RUN sed -i -e "s/sudo -u root//g" ./install.sh
-RUN ./install.sh --dependencies --rtklib --rtkbase-repo --gpsd-chrony 
+RUN ./install.sh --dependencies --rtklib --rtkbase-repo --gpsd-chrony
+#Change input data :serial to tcpclient
+RUN sed -i -e 's/in_serial="serial/\in_serial="tcpcli/g' ./rtkbase/run_cast.sh
 RUN sed -i -e "s/\$(logname)/root/g" ./rtkbase/copy_unit.sh
 RUN ./install.sh --unit-files
 
