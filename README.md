@@ -1,8 +1,7 @@
 
-# PHYSALIA  ![logo](https://github.com/jancelin/physalia/blob/main/doc/assets/physalia_carre_100px.png)
+# PHYSALIA  ![logo](https://github.com/jancelin/physalia/blob/main/docs/assets/physalia_carre_100px.png?raw=true)
 
-
-
+[![DOI](https://zenodo.org/badge/375017002.svg)](https://zenodo.org/badge/latestdoi/375017002)
 
 ## Plateforme HYdrographique pour la Surveillance Altimétrique du LIttoral 
 
