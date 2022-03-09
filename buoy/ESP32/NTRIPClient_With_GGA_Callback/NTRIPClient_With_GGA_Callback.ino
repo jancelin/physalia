@@ -4,31 +4,23 @@
   Date: January 13th, 2022
   License: MIT. See license file for more information but you can
   basically do whatever you want with this code.
-
   This example shows how to obtain RTCM data from a NTRIP Caster over WiFi and push it over I2C to a ZED-F9x.
   It's confusing, but the Arduino is acting as a 'client' to a 'caster'.
   In this case we will use Skylark. But you can of course use RTK2Go or Emlid's Caster too. Change secrets.h. as required.
-
   The rover's location will be broadcast to the caster every 10s via GGA setence - automatically using a callback.
-
   This is a proof of concept to show how to connect to a caster via HTTP and show how the corrections control the accuracy.
-
   It's a fun thing to disconnect from the caster and watch the accuracy degrade. Then connect again and watch it recover!
-
   For more information about NTRIP Clients and the differences between Rev1 and Rev2 of the protocol
   please see: https://www.use-snip.com/kb/knowledge-base/ntrip-rev1-versus-rev2-formats/
-
   "In broad protocol terms, the NTRIP client must first connect (get an HTTP “OK” reply) and only then
   should it send the sentence.  NTRIP protocol revision 2 (which does not have very broad industry
   acceptance at this time) does allow sending the sentence in the original header."
   https://www.use-snip.com/kb/knowledge-base/subtle-issues-with-using-ntrip-client-nmea-183-strings/
-
   Feel like supporting open source hardware?
   Buy a board from SparkFun!
   ZED-F9P RTK2: https://www.sparkfun.com/products/16481
   RTK Surveyor: https://www.sparkfun.com/products/18443
   RTK Express: https://www.sparkfun.com/products/18442
-
   Hardware Connections:
   Plug a Qwiic cable into the GNSS and a ESP32 Thing Plus
   If you don't have a platform with a Qwiic connection use the SparkFun Qwiic Breadboard Jumper (https://www.sparkfun.com/products/14425)
@@ -54,19 +46,11 @@ SFE_UBLOX_GNSS myGNSS;
 
 #include <ArduinoJson.h>
 
-#include <ArduinoMqttClient.h>
-WiFiClient wifiClient;
-MqttClient mqttClient(wifiClient);
+#include <PubSubClient.h>
 
-const char broker[] = "147.100.179.215";
-int        port     = 8090;
-const char topic[]  = "capteurs/GNSS";
-
-const long interval = 1000;
-unsigned long previousMillis = 0;
-
-int count = 0;
-
+ 
+WiFiClient espClient;
+PubSubClient client(espClient);
 
 //The ESP32 core has a built in base64 library but not every platform does
 //We'll use an external lib if necessary.
@@ -125,7 +109,7 @@ void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
   StaticJsonDocument<256> doc;
   // create an object
   JsonObject object = doc.to<JsonObject>();
-  
+
   doc["capteur"] = matUuid; // Print capteur uuid
 
   uint16_t y = ubxDataStruct->year; // Print the year
@@ -172,6 +156,11 @@ void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
 
   serializeJson(doc, Serial);
   Serial.println();
+  
+  String msg;
+  String output = "JSON = ";
+  serializeJson(doc, msg);
+  client.publish("buoy/gnss", msg.c_str());
 }
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -214,7 +203,7 @@ void setup()
   while (keepTrying)
   {
     Serial.print(F("Connecting to local WiFi"));
-    
+
     unsigned long startTime = millis();
     WiFi.begin(ssid, password);
     while ((WiFi.status() != WL_CONNECTED) && (millis() < (startTime + 10000))) // Timeout after 10 seconds
@@ -223,7 +212,7 @@ void setup()
       Serial.print(F("."));
     }
     Serial.println();
-    
+
     if (WiFi.status() == WL_CONNECTED)
       keepTrying = false; // Connected!
     else
@@ -237,23 +226,28 @@ void setup()
   Serial.println(WiFi.localIP());
 
   //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+  client.setServer(mqttServer, mqttPort);
+ 
+  while (!client.connected()) {
+    Serial.println("Connecting to MQTT...");
+ 
+    if (client.connect("ESP32Client", mqttUser, mqttPassword )) {
+ 
+      Serial.println("connected");
+ 
+    } else {
+ 
+      Serial.print("failed with state ");
+      Serial.print(client.state());
+      delay(2000);
+ 
+    }
+  }
+
+  //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
   while (Serial.available()) // Empty the serial buffer
     Serial.read();
-  //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
-  Serial.print("Attempting to connect to the MQTT broker: ");
-  Serial.println(broker);
-
-  if (!mqttClient.connect(broker, port)) {
-    Serial.print("MQTT connection failed! Error code = ");
-    Serial.println(mqttClient.connectError());
-
-    while (1);
-  }
-
-  Serial.println("You're connected to the MQTT broker!");
-  Serial.println();
 }
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -304,7 +298,7 @@ void loop()
         state = close_connection; // Move on
       }
       break;
-    
+
     //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
     case close_connection:
@@ -313,7 +307,7 @@ void loop()
       Serial.println(F("Press any key to reconnect..."));
       state = waiting_for_keypress; // Move on
       break;
-    
+
     //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
     case waiting_for_keypress:
@@ -322,7 +316,8 @@ void loop()
         state = open_connection; // Move on
       break; 
   }
-  
+  //MQTT
+  client.loop();
 }
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -486,7 +481,7 @@ bool processConnection()
 
       //Push RTCM to GNSS module over I2C
       myGNSS.pushRawData(rtcmData, rtcmCount);
-      
+
       Serial.print(F("Pushed "));
       Serial.print(rtcmCount);
       Serial.println(F(" RTCM bytes to ZED"));
@@ -497,7 +492,7 @@ bool processConnection()
     Serial.println(F("Connection dropped!"));
     return (false); // Connection has dropped - return false
   }  
-  
+
   //Timeout if we don't have new data for maxTimeBeforeHangup_ms
   if ((millis() - lastReceivedRTCM_ms) > maxTimeBeforeHangup_ms)
   {
