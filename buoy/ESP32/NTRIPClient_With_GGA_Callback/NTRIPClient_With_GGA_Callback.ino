@@ -54,6 +54,19 @@ SFE_UBLOX_GNSS myGNSS;
 
 #include <ArduinoJson.h>
 
+#include <ArduinoMqttClient.h>
+WiFiClient wifiClient;
+MqttClient mqttClient(wifiClient);
+
+const char broker[] = "147.100.179.215";
+int        port     = 8090;
+const char topic[]  = "capteurs/GNSS";
+
+const long interval = 1000;
+unsigned long previousMillis = 0;
+
+int count = 0;
+
 
 //The ESP32 core has a built in base64 library but not every platform does
 //We'll use an external lib if necessary.
@@ -227,6 +240,20 @@ void setup()
 
   while (Serial.available()) // Empty the serial buffer
     Serial.read();
+  //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+  Serial.print("Attempting to connect to the MQTT broker: ");
+  Serial.println(broker);
+
+  if (!mqttClient.connect(broker, port)) {
+    Serial.print("MQTT connection failed! Error code = ");
+    Serial.println(mqttClient.connectError());
+
+    while (1);
+  }
+
+  Serial.println("You're connected to the MQTT broker!");
+  Serial.println();
 }
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
