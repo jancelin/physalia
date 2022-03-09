@@ -35,6 +35,7 @@ Install Libraries arduino: https://knowledge.parcours-performance.com/librairies
 Sparfun_u-blox_gnns_arduino_library: https://github.com/sparkfun/SparkFun_u-blox_GNSS_Arduino_Library
 JsonDocument capacity: https://arduinojson.org/v6/assistant/
 NAV-PVT :http://docs.ros.org/en/noetic/api/ublox_msgs/html/msg/NavPVT.html
+mqtt client: https://techtutorialsx.com/2017/04/24/esp32-publishing-messages-to-mqtt-topic/
 */
 
 
@@ -114,15 +115,25 @@ void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
 
   uint16_t y = ubxDataStruct->year; // Print the year
   uint8_t mo = ubxDataStruct->month; // Print the year
+  String mo1;
+  if (mo < 10) {mo1 = "0"+ String(mo);} else { mo1 = String(mo);};
   uint8_t d = ubxDataStruct->day; // Print the year
+  String d1;
+    if (d < 10) {d1 = "0"+ String(d);} else { d1 = String(d);};
   uint8_t h = ubxDataStruct->hour; // Print the hours
+  String h1;
+    if (h < 10) {h1 = "0"+ String(h);} else { h1 = String(h);};
   uint8_t m = ubxDataStruct->min; // Print the minutes
+  String m1;
+    if (m < 10) {m1 = "0"+ String(m);} else { m1 = String(m);};
   uint8_t s = ubxDataStruct->sec; // Print the seconds
+  String s1;
+    if (s < 10) {s1 = "0"+ String(s);} else { s1 = String(s);};
   unsigned long millisecs = ubxDataStruct->iTOW % 1000; // Print the milliseconds
   String a = ":";
   String b = "-";
-  String date1 = y+b+mo+b+d+" ";
-  String time1 = h +a+ m +a+ s + "." + millisecs;
+  String date1 = y+b+mo1+b+d1+" ";
+  String time1 = h1 +a+ m1 +a+ s1 + "." + millisecs;
   object["datetime"] = "'"+date1+time1+"'"; // print date time for postgresql data injection.
 
   double latitude = ubxDataStruct->lat; // Print the latitude
@@ -160,7 +171,7 @@ void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
   String msg;
   String output = "JSON = ";
   serializeJson(doc, msg);
-  client.publish("buoy/gnss", msg.c_str());
+  client.publish(mqtttopic, msg.c_str());
 }
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
