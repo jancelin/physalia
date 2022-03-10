@@ -51,7 +51,6 @@ SFE_UBLOX_GNSS myGNSS;
 
  
 WiFiClient espClient;
-PubSubClient client(espClient);
 
 //The ESP32 core has a built in base64 library but not every platform does
 //We'll use an external lib if necessary.
@@ -63,7 +62,28 @@ PubSubClient client(espClient);
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
+PubSubClient client(espClient); //MQTT
+long lastReconnectAttempt = 0; 
+
+void callback(char* topic, byte* payload, unsigned int length) {
+  // handle message arrived
+}
+
+boolean reconnect() {
+  if (client.connect(mqtttopic)) {
+    // Once connected, publish an announcement...
+    client.publish(mqtttopic, matUuid);
+    // ... and resubscribe
+    client.subscribe(mqtttopic);
+  }
+  return client.connected();
+}
+
+
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
 //Global variables
+
 
 unsigned long lastReceivedRTCM_ms = 0;          //5 RTCM messages take approximately ~300ms to arrive at 115200bps
 const unsigned long maxTimeBeforeHangup_ms = 10000UL; //If we fail to get a complete RTCM frame after 10s, then disconnect from caster
@@ -167,7 +187,8 @@ void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
 
   serializeJson(doc, Serial);
   Serial.println();
-  
+
+  //Send position to MQTT broker
   String msg;
   String output = "JSON = ";
   serializeJson(doc, msg);
@@ -239,6 +260,7 @@ void setup()
 
   //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
   client.setServer(mqttServer, mqttPort);
+  client.setCallback(callback);
  
   while (!client.connected()) {
     Serial.println("Connecting to MQTT...");
@@ -251,8 +273,8 @@ void setup()
  
       Serial.print("failed with state ");
       Serial.print(client.state());
-      delay(2000);
- 
+      delay(1500);
+      lastReconnectAttempt = 0;
     }
   }
 
@@ -329,7 +351,20 @@ void loop()
       break; 
   }
   //MQTT
-  client.loop();
+  if (!client.connected()) {
+    long now = millis();
+    if (now - lastReconnectAttempt > 5000) {
+      lastReconnectAttempt = now;
+      // Attempt to reconnect
+      if (reconnect()) {
+        lastReconnectAttempt = 0;
+      }
+    }
+  } else {
+    // Client connected
+
+    client.loop();
+  }
 }
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
