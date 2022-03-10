@@ -172,6 +172,7 @@ void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
   String output = "JSON = ";
   serializeJson(doc, msg);
   client.publish(mqtttopic, msg.c_str());
+  Serial.println("Message send");
 }
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -323,8 +324,8 @@ void loop()
 
     case waiting_for_keypress:
       // If the connection has dropped or timed out, or if the user has pressed a key
-      if (keyPressed())
-        state = open_connection; // Move on
+      //if (keyPressed())
+      state = open_connection; // Move on
       break; 
   }
   //MQTT
