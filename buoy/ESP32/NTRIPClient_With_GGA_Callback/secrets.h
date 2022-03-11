@@ -10,7 +10,7 @@ const char* mqttPassword = "";
 const char* mqtttopic = "buoy/gnss";
 
 //material uuid
-const char matUuid[] = "'Buoy_eps32_f9p_rtk'";
+const char matUuid[] = "'Buoy_eps32_";
 
 //Centipede works well and is free
 const char casterHost[] = "caster.centipede.fr";
