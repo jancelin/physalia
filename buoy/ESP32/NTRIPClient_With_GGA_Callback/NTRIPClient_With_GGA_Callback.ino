@@ -255,8 +255,11 @@ void setup()
     }
   }
 
-  Serial.print(F("WiFi connected with IP: "));
+  Serial.println(F("WiFi connected with IP: "));
   Serial.println(WiFi.localIP());
+  WiFi.setAutoReconnect(true);
+  WiFi.persistent(true);
+  delay(500); 
 
   //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
   client.setServer(mqttServer, mqttPort);
@@ -350,6 +353,7 @@ void loop()
       state = open_connection; // Move on
       break; 
   }
+  //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
   //MQTT
   if (!client.connected()) {
     long now = millis();
@@ -365,6 +369,16 @@ void loop()
 
     client.loop();
   }
+  //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+  // Wifi auto reconnect
+  delay(1000);
+  if(WiFi.status() == WL_CONNECTED){
+    //Serial.println("WIFI connect!!!!");
+    }
+  else{
+    Serial.println("WIFI disconnected. reconnect...");
+    WiFi.reconnect();
+}
 }
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
