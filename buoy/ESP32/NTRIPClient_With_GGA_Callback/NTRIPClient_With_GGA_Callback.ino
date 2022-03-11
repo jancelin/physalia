@@ -131,7 +131,7 @@ void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
   // create an object
   JsonObject object = doc.to<JsonObject>();
 
-  doc["capteur"] = matUuid; // Print capteur uuid
+  doc["capteur"] = matUuid + WiFi.macAddress()+"'";//matUuid; // Print capteur uuid
 
   uint16_t y = ubxDataStruct->year; // Print the year
   uint8_t mo = ubxDataStruct->month; // Print the year
