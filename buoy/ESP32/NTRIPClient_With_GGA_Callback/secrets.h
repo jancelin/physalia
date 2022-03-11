@@ -18,3 +18,6 @@ const uint16_t casterPort = 2101;
 const char casterUser[] = "centipede32"; //User must provide their own email address to use RTK2Go
 const char casterUserPW[] = "centipede32";
 const char mountPoint[] = "LIENSS"; //The mount point you want to get data from
+
+//Send gga to caster
+const bool transmitLocation = true;
