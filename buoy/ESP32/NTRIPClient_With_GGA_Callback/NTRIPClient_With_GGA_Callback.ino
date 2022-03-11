@@ -36,8 +36,8 @@ Sparfun_u-blox_gnns_arduino_library: https://github.com/sparkfun/SparkFun_u-blox
 JsonDocument capacity: https://arduinojson.org/v6/assistant/
 NAV-PVT :http://docs.ros.org/en/noetic/api/ublox_msgs/html/msg/NavPVT.html
 mqtt client: https://techtutorialsx.com/2017/04/24/esp32-publishing-messages-to-mqtt-topic/
+auto reconnect wifi: http://community.heltec.cn/t/solved-wifi-reconnect/1396/3
 */
-
 
 #include <WiFi.h>
 #include "secrets.h"
@@ -46,9 +46,7 @@ mqtt client: https://techtutorialsx.com/2017/04/24/esp32-publishing-messages-to-
 SFE_UBLOX_GNSS myGNSS;
 
 #include <ArduinoJson.h>
-
 #include <PubSubClient.h>
-
  
 WiFiClient espClient;
 
@@ -61,7 +59,6 @@ WiFiClient espClient;
 #endif
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
 PubSubClient client(espClient); //MQTT
 long lastReconnectAttempt = 0; 
 
@@ -78,22 +75,17 @@ boolean reconnect() {
   }
   return client.connected();
 }
-
-
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
 //Global variables
-
 
 unsigned long lastReceivedRTCM_ms = 0;          //5 RTCM messages take approximately ~300ms to arrive at 115200bps
 const unsigned long maxTimeBeforeHangup_ms = 10000UL; //If we fail to get a complete RTCM frame after 10s, then disconnect from caster
 
-bool transmitLocation = true;        //By default we will transmit the unit's location via GGA sentence.
+//bool transmitLocation = true;  change to secrets.h      //By default we will transmit the unit's location via GGA sentence.
 
 WiFiClient ntripClient; // The WiFi connection to the NTRIP server. This is global so pushGGA can see if we are connected.
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
 // Callback: pushGPGGA will be called when new GPGGA NMEA data arrives
 // See u-blox_structs.h for the full definition of NMEA_GGA_data_t
 //         _____  You can use any name you like for the callback. Use the same name when you call setNMEAGPGGAcallback
