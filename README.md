@@ -1,5 +1,5 @@
 
-# PHYSALIA  ![logo](https://github.com/jancelin/physalia/blob/main/docs/assets/physalia_carre_100px.jpg?raw=true)
+# PHYSALIA  ![logo](https://github.com/jancelin/physalia/blob/main/docs/assets/Illustration_sans_titre.jpg?raw=true)
 
 [![DOI](https://zenodo.org/badge/375017002.svg)](https://zenodo.org/badge/latestdoi/375017002)
 
