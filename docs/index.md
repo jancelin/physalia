@@ -7,7 +7,7 @@ has_children: true
 
 # PHYSALIA
 
-![Physalia](/assets/Illustration_sans_titre_1.jpg)
+![Physalia](/assets/Illustration_sans_titre 2.jpg)
 
 ## Plateforme HYdrographique pour la Surveillance Altimétrique du LIttoral 
 
