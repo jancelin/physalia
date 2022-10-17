@@ -15,7 +15,7 @@ Les bouées ont été construites autour d’une structure centrale imprimée en
 
 Des essais réalisés sur l’île d’Aix (France) ont permis d’évaluer la précision des bouées en comparant les données obtenues avec celles d’un marégraphe radar. La comparaison est réalisée avec les données corrigées en temps réel et celles corrigées en post-traitement. Les résultats obtenus montrent une erreur quadratique moyenne (RMSE) comprise entre 1,93 et 3,03 cm validant ainsi l’utilisation des bouées GNSS-RTK développée de manière économique pour un usage marégraphique.
 [
-![mission Thalia 10/22](/assets/mission_thalia_10-22.gif)](https://github.com/jancelin/physalia/blob/main/docs/assets/mission_thalia_10-22.gif)
+![mission Thalia 10/22](https://github.com/jancelin/physalia/blob/main/docs/assets/mission_thalia_10-22.gif)
 ![VID_20210526_131756](https://user-images.githubusercontent.com/6421175/123070138-c9cc2b00-d413-11eb-9d8e-3b214ef0bcf7.gif)
 ![monitoring_small](https://user-images.githubusercontent.com/6421175/121193450-281ed880-c86e-11eb-855a-5cee7dc6ea80.png)
 ![partenaires](https://user-images.githubusercontent.com/6421175/121195306-c6f80480-c86f-11eb-92a4-7ca271be2f45.png)
