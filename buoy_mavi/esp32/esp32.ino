@@ -193,36 +193,6 @@ void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
 void setup()
 {
   Serial.begin(115200);
-  Serial.println(F("NTRIP testing"));
-  
-  Wire.begin(); //Start I2C
-
-  while (myGNSS.begin() == false) //Connect to the Ublox module using Wire port
-  {
-    Serial.println(F("u-blox GPS not detected at default I2C address. Please check wiring."));
-    delay(2000);
-  }
-  Serial.println(F("u-blox module connected"));
-
-  myGNSS.setI2COutput(COM_TYPE_UBX | COM_TYPE_NMEA);                                //Set the I2C port to output both NMEA and UBX messages
-  myGNSS.setPortInput(COM_PORT_I2C, COM_TYPE_UBX | COM_TYPE_NMEA | COM_TYPE_RTCM3); //Be sure RTCM3 input is enabled. UBX + RTCM3 is not a valid state.
-
-  myGNSS.setDGNSSConfiguration(SFE_UBLOX_DGNSS_MODE_FIXED); // Set the differential mode - ambiguities are fixed whenever possible
-
-  myGNSS.setNavigationFrequency(1); //Set output in Hz.
-
-  // Set the Main Talker ID to "GP". The NMEA GGA messages will be GPGGA instead of GNGGA
-  myGNSS.setMainTalkerID(SFE_UBLOX_MAIN_TALKER_ID_GP);
-
-  myGNSS.setNMEAGPGGAcallbackPtr(&pushGPGGA); // Set up the callback for GPGGA
-
-  myGNSS.enableNMEAMessage(UBX_NMEA_GGA, COM_PORT_I2C, 15); // Tell the module to output GGA every 15 seconds
-
-  myGNSS.setAutoPVTcallbackPtr(&printPVTdata); // Enable automatic NAV PVT messages with callback to printPVTdata so we can watch the carrier solution go to fixed
-
-  //myGNSS.saveConfiguration(VAL_CFG_SUBSEC_IOPORT | VAL_CFG_SUBSEC_MSGCONF); //Optional: Save the ioPort and message settings to NVM
-
-  //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
   bool keepTrying = true;
   while (keepTrying)
@@ -254,6 +224,38 @@ void setup()
   delay(500); 
 
   //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+  
+  Serial.println(F("NTRIP testing"));
+  
+  Wire.begin(); //Start I2C
+
+  while (myGNSS.begin() == false) //Connect to the Ublox module using Wire port
+  {
+    Serial.println(F("u-blox GPS not detected at default I2C address. Please check wiring."));
+    delay(2000);
+  }
+  Serial.println(F("u-blox module connected"));
+
+  myGNSS.setI2COutput(COM_TYPE_UBX | COM_TYPE_NMEA);                                //Set the I2C port to output both NMEA and UBX messages
+  myGNSS.setPortInput(COM_PORT_I2C, COM_TYPE_UBX | COM_TYPE_NMEA | COM_TYPE_RTCM3); //Be sure RTCM3 input is enabled. UBX + RTCM3 is not a valid state.
+
+  myGNSS.setDGNSSConfiguration(SFE_UBLOX_DGNSS_MODE_FIXED); // Set the differential mode - ambiguities are fixed whenever possible
+
+  myGNSS.setNavigationFrequency(1); //Set output in Hz.
+
+  // Set the Main Talker ID to "GP". The NMEA GGA messages will be GPGGA instead of GNGGA
+  myGNSS.setMainTalkerID(SFE_UBLOX_MAIN_TALKER_ID_GP);
+
+  myGNSS.setNMEAGPGGAcallbackPtr(&pushGPGGA); // Set up the callback for GPGGA
+
+  myGNSS.enableNMEAMessage(UBX_NMEA_GGA, COM_PORT_I2C, 15); // Tell the module to output GGA every 15 seconds
+
+  myGNSS.setAutoPVTcallbackPtr(&printPVTdata); // Enable automatic NAV PVT messages with callback to printPVTdata so we can watch the carrier solution go to fixed
+
+  //myGNSS.saveConfiguration(VAL_CFG_SUBSEC_IOPORT | VAL_CFG_SUBSEC_MSGCONF); //Optional: Save the ioPort and message settings to NVM
+
+  //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
   client.setServer(mqttServer, mqttPort);
   client.setCallback(callback);
  
