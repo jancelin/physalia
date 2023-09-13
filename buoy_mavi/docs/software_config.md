@@ -111,6 +111,20 @@ Au terme de cette étape le répertoire `physalia` devrait être présent sur vo
 				* Chercher et installer la bibliothèque `ArduinoJson` développée par Benoit Blanchon
 				* Chercher et installer la bibliothèque `PubSubClient` développée par Nick O'Leary>
 
+### Test de connexion au routeur 4G
+
+- Sur l'ordinateur, brancher en USB l'ESP32 configuré
+- Lancer l'IDE Arduino
+- Sélectionner la carte `ESP32 Dev Module` et le port série de l'ESP32
+![](assets/software_config/Arduino/arduino_precompil.jpg)
+- Ouvrir le moniteur série en haut à droite de l'éditeur
+<br>![](assets/software_config/Arduino/arduino_sermonbutton.png)<br>
+  Sa sortie devrait être similaire à la figure ci-contre
+![](assets/software_config/Arduino/arduino_sermon.png)
+- Mettre le routeur 4G configuré sous tension
+- Une fois l'ESP32 connecté au routeur, la sorite du moniteur série confirme la connexion
+![](assets/software_config/Arduino/arduino_sermon2.png)
+
 ## Configuration du Drotek DP0601
 
 ### Matériel
