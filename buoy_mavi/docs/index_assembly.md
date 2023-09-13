@@ -44,3 +44,9 @@ Tutoriel d'assemblage
 |Valise HMF étanche (34x29,5x15,5cm)||
 |Plaque en carte rigide (min 34x29,5cm)||
 |4 vis (35x8mm)||
+
+
+# Etapes d'assemblage
+
+- [Configuration logicielle](software_config.md)
+- [Asemblage]()
