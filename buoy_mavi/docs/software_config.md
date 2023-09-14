@@ -26,28 +26,38 @@ Configuration logicielle
 - Dévérrouiller la carte SIM en entrant son code PIN, et cocher `Save PIN code`
 <br>![](assets/software_config/ZTE/zte_pin.png)
 - Attendre la fin des éventuelles mises à jour et redémarrage du routeur<br>
-  Si besoin, se reconnecter au point d'accès WiFi du routeur
+  Se reconnecter au point d'accès WiFi du routeur
 - Rafraîchir la page web
-- Basculer le bouton 4G sur `OFF`
+
+[comment]: <- Basculer le bouton 4G sur `OFF`>
 <br>![](assets/software_config/ZTE/zte_web.png)
+
 - Aller dans `Paramètres avancés`
-- Paramétrer l'`Economie d'énergie` :
-	+ Dans `Portée Wi-Fi`, sélectionner `Portée Wi-Fi courte` et désactiver la mise en veille
-	+ Appliquer les changements pour cette section
-	+ Dans `Temps de veille`, sélectionner `Veille désactivée`
-	+ Appliquer les changements pour cette section
-	<br>![](assets/software_config/ZTE/zte_settings.png)
-- Dans `Autres` -> `Code PIN`, s'assurer que `Enregistrer le code PIN` est coché
-- De retour sur la page d'accueil, configurer les `Paramètres Wi-Fi` :
+	+ Paramétrer l'`Economie d'énergie` :
+		* Dans `Portée Wi-Fi`, sélectionner `Portée Wi-Fi courte`
+		* Appliquer les changements pour cette section
+		* Dans `Temps de veille`, sélectionner `Veille désactivée`
+		* Appliquer les changements pour cette section
+		<br>![](assets/software_config/ZTE/zte_settings.png)
+
+	+ Dans `Autres` -> `Code PIN`, s'assurer que `Enregistrer le code PIN` est coché
+
+- De retour sur la page d'accueil, configurer les `Paramètres` du Wi-Fi :
 	+ Changer le `Nom du réseau (SSID)` pour `buoy`
 	+ Changer le mot de passe pour `Buoy_43210!`
 	+ Limiter le `Nombre de connexions maximum` à 2
 	+ Appliquer les changements
 	+ Accepter la déconnexion de périphériques du point d'accès WiFi
 	<br>![](assets/software_config/ZTE/zte_wificonfig.png)
-- Se reconnecter au point d'accès avec les nouveaux identifiants renseignés
-- De retour sur la page d'accueil, basculer le bouton 4G sur `ON`
+
+[comment]: <- Se reconnecter au point d'accès avec les nouveaux identifiants renseignés
+	- De retour sur la page d'accueil, basculer le bouton 4G sur `ON`>
+ 
 - Se déconnecter de la page
+	<br>![](assets/software_config/ZTE/zte_buoy.png)
+- S'assurer que `buoy` appparait dans les réseaux WiFi disponibles
+- Mettre le routeur hors tension
+- Laisser le routeur charger complètement
 
 ## Dépôt GitHub
 
