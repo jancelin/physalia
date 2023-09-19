@@ -1,13 +1,13 @@
 //Your WiFi credentials
-const char ssid[] = "BUOY";
-const char password[] = "12345678";
+const char ssid[] = "buoy";
+const char password[] = "Buoy_43210!";
 
 //MQTT connexion
 const char* mqttServer = "127.0.0.1";
 const int mqttPort = 1883;
 const char* mqttUser = "";
 const char* mqttPassword = "";
-const char* mqtttopic = "buoy/gnss";
+const char* mqtttopic = "buoy/gnss_test";
 
 //material uuid
 const char matUuid[] = "'Buoy_eps32_";

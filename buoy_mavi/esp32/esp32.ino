@@ -260,7 +260,7 @@ void setup()
   client.setCallback(callback);
  
   while (!client.connected()) {
-    Serial.println("Connecting to MQTT...");
+    Serial.println("Connecting to MQTT...\n");
  
     if (client.connect("ESP32Client", mqttUser, mqttPassword )) {
  
