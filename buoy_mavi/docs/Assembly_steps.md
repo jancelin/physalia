@@ -114,7 +114,7 @@ Physalia Instalation Protocol
 ## ESP32
 - Get your ESP32 board pinout (they vary depending on the manufacturer)
 - Get the Drotek DP0601 UART1 port pinout from the [datasheet](https://raw.githubusercontent.com/drotek/datasheets/master/DrotekDoc_0891B08A%20-%20DP0601%20GNSS%20RTK%20(F9P).pdf)
-- Cut one flat cable that comes with DP0601 in half
+- Cut 2/3 of a flat cable that comes with DP0601
 - Strip edges corresponding to 5V, GND, B4 and B5 on DP0601 UART1 port
 - Welding
 	+ Weld 5V to ESP32 5V
