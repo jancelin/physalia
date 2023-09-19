@@ -15,22 +15,22 @@ Configuration logicielle
 - Brancher le routeur sur une source d'alimentation
 - Mettre le routeur sous tension
 - Attendre que voyant du point d'accès WiFi du routeur soit allumé
-<br>![Voyant AP](assets/software_config/ZTE/zte_aplight.jpg)
+<br>![Voyant AP](assets/ZTE/zte_aplight.jpg)
 - Connecter l'ordinateur au point d'accès WiFi en utilisant les identifiants au dos du routeur
-<br>![Connexion AP](assets/software_config/ZTE/zte_apconnect.jpg)
+<br>![Connexion AP](assets/ZTE/zte_apconnect.jpg)
 - Accéder à l'interface web du routeur :
 	+ Ouvrir un navigateur internet
 	+ Dans la barre d'adresse, entrer l'URL `http://192.168.0.1` pour accéder à l'interface web du routeur
 - Entrer le mot de passe `admin` renseigné au dos du routeur et cliquer sur `Connexion`
-<br>![](assets/software_config/ZTE/zte_admin.jpg)
+<br>![](assets/ZTE/zte_admin.jpg)
 - Dévérrouiller la carte SIM en entrant son code PIN, et cocher `Save PIN code`
-<br>![](assets/software_config/ZTE/zte_pin.png)
+<br>![](assets/ZTE/zte_pin.png)
 - Attendre la fin des éventuelles mises à jour et redémarrage du routeur<br>
   Se reconnecter au point d'accès WiFi du routeur
 - Rafraîchir la page web
 
 [comment]: <- Basculer le bouton 4G sur `OFF`>
-<br>![](assets/software_config/ZTE/zte_web.png)
+<br>![](assets/ZTE/zte_web.png)
 
 - Aller dans `Paramètres avancés`
 	+ Paramétrer l'`Economie d'énergie` :
@@ -38,7 +38,7 @@ Configuration logicielle
 		* Appliquer les changements pour cette section
 		* Dans `Temps de veille`, sélectionner `Veille désactivée`
 		* Appliquer les changements pour cette section
-		<br>![](assets/software_config/ZTE/zte_settings.png)
+		<br>![](assets/ZTE/zte_settings.png)
 
 	+ Dans `Autres` -> `Code PIN`, s'assurer que `Enregistrer le code PIN` est coché
 
@@ -48,13 +48,13 @@ Configuration logicielle
 	+ Limiter le `Nombre de connexions maximum` à 2
 	+ Appliquer les changements
 	+ Accepter la déconnexion de périphériques du point d'accès WiFi
-	<br>![](assets/software_config/ZTE/zte_wificonfig.png)
+	<br>![](assets/ZTE/zte_wificonfig.png)
 
 [comment]: <- Se reconnecter au point d'accès avec les nouveaux identifiants renseignés
 	- De retour sur la page d'accueil, basculer le bouton 4G sur `ON`>
  
 - Se déconnecter de la page
-	<br>![](assets/software_config/ZTE/zte_buoy.png)
+	<br>![](assets/ZTE/zte_buoy.png)
 - S'assurer que `buoy` appparait dans les réseaux WiFi disponibles
 - Mettre le routeur hors tension
 - Laisser le routeur charger complètement
@@ -66,7 +66,7 @@ Un dépôt Git du projet est diponible sur [GitHub](https://github.com/jancelin/
 ### Depuis GitHub
 
 - Rendez-vous sur le dépôt [GitHub](https://github.com/jancelin/physalia) du projet
-- Télécharger l'archive du dépôt ![](assets/software_config/github_download.png)
+- Télécharger l'archive du dépôt ![](assets/github_download.png)
 - Décompresser l'archive sur le bureau
 
 
@@ -90,10 +90,10 @@ Au terme de cette étape le répertoire `physalia` devrait être présent sur vo
 
 - Installer et ouvrir l'[IDE Arduino](https://www.arduino.cc/en/software)
 - Ouvrir le fichier `buoy_mavi/esp32/esp32.ino` dans l'éditeur Arduino<br>
-![](assets/software_config/Arduino/arduino_open.jpg)
+![](assets/Arduino/arduino_open.jpg)
 
 - Editer le fichier `secret.h` :<br>
-![](assets/software_config/Arduino/arduino_secrets.png)
+![](assets/Arduino/arduino_secrets.png)
 	+ Laisser les identifiants WiFi par défaut :<br>
 		`ssid = "buoy"`<br>
 		`password = "Buoy_43210!"`
@@ -107,12 +107,12 @@ Au terme de cette étape le répertoire `physalia` devrait être présent sur vo
 		* Aller dans `Outils` -> `Type de carte` -> `Gestionnaire de carte`
 		* Taper `ESP32` dans la bar de recherche
 		* Installer le paquet `esp32` fourni par Espressif Systems
-![](assets/software_config/Arduino/arduino_board.jpg)
+![](assets/Arduino/arduino_board.jpg)
 	* Aller dans `Outils` -> `Type de carte` -> `ESP32 Arduino` et selectionner `ESP32 Dev Module`
 	* Aller dans `Outils` -> `Port` et sélectionner le port correspondant à l'ESP32 (le seul normalement) 
-<br>![](assets/software_config/Arduino/arduino_precompil.jpg)
+<br>![](assets/Arduino/arduino_precompil.jpg)
 	+ Téléverser le programme sur l'ESP32
-<br>![](assets/software_config/Arduino/arduino_end.jpg)
+<br>![](assets/Arduino/arduino_end.jpg)
 - Débrancher l'ESP32
 
 
@@ -126,14 +126,14 @@ Au terme de cette étape le répertoire `physalia` devrait être présent sur vo
 - Sur l'ordinateur, brancher en USB l'ESP32 configuré
 - Lancer l'IDE Arduino
 - Sélectionner la carte `ESP32 Dev Module` et le port série de l'ESP32
-![](assets/software_config/Arduino/arduino_precompil.jpg)
+![](assets/Arduino/arduino_precompil.jpg)
 - Ouvrir le moniteur série en haut à droite de l'éditeur
-<br>![](assets/software_config/Arduino/arduino_sermonbutton.png)<br>
+<br>![](assets/Arduino/arduino_sermonbutton.png)<br>
   Sa sortie devrait être similaire à la figure ci-contre
-![](assets/software_config/Arduino/arduino_sermon.png)
+![](assets/Arduino/arduino_sermon.png)
 - Mettre le routeur 4G configuré sous tension
 - Une fois l'ESP32 connecté au routeur, la sorite du moniteur série confirme la connexion
-![](assets/software_config/Arduino/arduino_sermon2.png)
+![](assets/Arduino/arduino_sermon2.png)
 
 ## Configuration du Drotek DP0601
 
@@ -146,22 +146,22 @@ Au terme de cette étape le répertoire `physalia` devrait être présent sur vo
 ### Mise à jour du firmware
 
 - Télécharger la version v1.13 du [firmware](https://www.u-blox.com/en/product/zed-f9p-module?file_category=Firmware%2520Update)
-![](assets/software_config/DP0601/dp_firmware.png)
+![](assets/DP0601/dp_firmware.png)
 - Installer [u-center](https://www.u-blox.com/en/product/u-center) (pas u-center 2!)
-![](assets/software_config/DP0601/dp_ucenter.png)
+![](assets/DP0601/dp_ucenter.png)
 - Téléverser le nouveau firmware au Drotek DP0601
 	- Brancher le DP0601 en USB à l'ordinateur
 	- Ouvrir u-center
 	- Connecter u-center au port COM du DP0601
-	<br>![](assets/software_config/DP0601/dp_port.jpg)
+	<br>![](assets/DP0601/dp_port.jpg)
 	- Aller dans `Tools` -> `Firmware update`
 	- Dans `Firmware`, sélectionner le fichier firmware téléchargé
 	- Cocher et configurer `Use this baudrate for updtate` à 9600 bauds
 	- Décoher toutes les autres cases
 	- Cliquer sur `GO`
-	<br>![](assets/software_config/DP0601/dp_update.jpg)
+	<br>![](assets/DP0601/dp_update.jpg)
 	- Déconnecter u-center du port COM
-	<br>![](assets/software_config/DP0601/dp_disconnect.png)
+	<br>![](assets/DP0601/dp_disconnect.png)
 	- Débrancher le DP0601
 
 ### Configuration
@@ -170,11 +170,11 @@ Au terme de cette étape le répertoire `physalia` devrait être présent sur vo
 - Brancher le DP0601 en USB à l'ordinateur
 - Ouvrir u-center
 - Connecter u-center au port COM du DP0601
-<br>![](assets/software_config/DP0601/dp_port.jpg)
+<br>![](assets/DP0601/dp_port.jpg)
 - Aller dans `Tools` -> `Receiver Configuration`
 - Dans `Configuration file`, sélectionner le fichier de configuration situé dans le dossier `buoy_mavi/f9p/` du dépôt
 - Cliquer sur `transfer file -> GNSS`
-<br>![](assets/software_config/DP0601/dp_config.jpg)
+<br>![](assets/DP0601/dp_config.jpg)
 - **Ne pas débrancher le DP0601 !** Il reste encore à sauvegarder sa configuration
 
 [comment]: <- Dans la section `Load configuration`, cocher la case check the box to save config into Flash instead of RAM>
@@ -183,22 +183,22 @@ Au terme de cette étape le répertoire `physalia` devrait être présent sur vo
 
 - Ouvrir u-center
 - Aller dans `View` -> `Configuration View`
-<br>![](assets/software_config/DP0601/dp_cfgview.png)
+<br>![](assets/DP0601/dp_cfgview.png)
 - Dans la section `MSG` :
 	+ Chercher `01-07 NAV-PVT` du champs `Message`
 	+ S'assurer que les cases `UART1` et `USB` sont cochées
-	<br>![](assets/software_config/DP0601/dp_MSG.png)
+	<br>![](assets/DP0601/dp_MSG.png)
 - Dans la section `RATE` :
 	+ S'assurer que `Time source` est configuré sur `1 - GPS`
 	+ S'assurer que `Measurement Frequency` est configuré à 1Hz
-	<br>![](assets/software_config/DP0601/dp_RATE.png)
+	<br>![](assets/DP0601/dp_RATE.png)
 - Dans la section `PRT` :
 	+ S'assurer que pour la cilbe `1 - UART1`, les protocoles in/out et le baudrate sont configurés à `0+1+5 - UBX+NMEA+RTCM3`, `0+1 - UBX-NMEA` et 115200 bauds
 - Dans la section `PRT` : 
 	+ S'assurer que pour la cible `3 - USB`, les protocoles in/out et le baudrate sont configurés à `0+1+5 - UBX+NMEA+RTCM3`, `0+1 - UBX-NMEA`  et 115200 bauds
-	<br>![](assets/software_config/DP0601/dp_PRT.jpg)
+	<br>![](assets/DP0601/dp_PRT.jpg)
 - Dans la secion `CFG` : 
 	+ Selectionner `Save current configuration` 
 	+ Selectionner `0 - BBR` et `1 - FLASH` en utilisant `Ctrl+Maj`
 	+ Cliquer sur `Send` pour sauvgarder la configuration
-	<br>![](assets/software_config/DP0601/dp_CFG.png)
+	<br>![](assets/DP0601/dp_CFG.png)
