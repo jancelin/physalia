@@ -16,6 +16,12 @@ Outils nécéssaires
 
 ![Outils]()
 
+Aperçu de la valise complète
+----------------------------
+
+![]()
+
+
 Microcontrôleur ESP32 et Drotek DP0601
 --------------------------------------
 
@@ -87,7 +93,7 @@ Valise étanche
 |Batterie au plomb 20Ah avec boulon de câblage||Cutter|
 ||||
 |Contrôleur de charge solaire||Tournevis cruciforme|
-|Plaque de carton rigide (min 34x29,5cm)||Cutter|
+|Plaque rigide (min 34x29,5cm)||Cutter|
 ||||
 |Vis héxagonale 8mm x4||Tournevis héxagonal pour vis 8mm|
 ||||
@@ -102,7 +108,7 @@ Valise étanche
 	Si besoin, couper quelques fils de cuivre pour permettre au câble de passer le tube
 	+ Pincer l'extrémité du tube de la cosse afin de bloquer le câble à l'intérieur
 	+ Souder la partie de câble dépassant sur la cosse
-	<br>![](assets/assembly/ring.jpg)
+	<br>![](assets/assembly/assembly_ring.jpg)
 - Protéger les extrémités non serties des câbles avec du scotch isolant électrique
 - Connecter les cosses sur les bornes de la batterie en utilisant les boulons prévus à cet effet
 
@@ -111,46 +117,61 @@ Valise étanche
 #### Passage des câbles externes
 
 - Vider totalement la valise
-- Percer 3 trous de diamètre 15mm à travers la facade droite de la valise
+- Percer 3 trous de diamètre 15mm come suit, à travers la facade droite de la valise
 - Visser les 3 presse étoupes avec leur joint dans les trous percés
+<br>![](assets/assembly/assembly_holes.jpg)
 
 #### Installation et maintien de la batterie
 
 - Placer le gros bloc de mousse à l'intérieur de la valise
-- **Attention, la mousse est conductrice !**<br>
-  Protéger les électrodes de la batterie avec du scotch isolant électrique
-- A travers le bloc de mousse, au centre, couper un rectangle de la même taille que la batterie
-- Placer la batterie à l'intérieur du rectangle découpé, ses électrodes du côté de presse étoupes
-- Couper la mousse autour des électrodes afin d'éviter tout court-circuit
+- **Attention, la mousse peut être conductrice !**<br>
+  Ne pas mettre les bornes de la batterie en contact avec la mousse
+- A travers le centre du bloc de mousse, découper un rectangle de la même taille que la batterie<br>
+  Le cadrillage prédécoupé permet de centrer facilement le rectangle et facilite la découpe
+- Du côté des presse étoupes, sur une demi hauteur, couper la mousse autour des bornes afin d'éviter tout court-circuit
+- Placer la batterie à l'intérieur du rectangle découpé<br>
+  Ses bornes doivent être directement accessibles
+<br>![](assets/assembly/assembly_foam.jpg)
 
 #### Installation du contrôleur de charge et isolation de l'alimentation
 
-- Couper une plaque de carton rigide aux dimensions de l'intérieur de la valise
+- Couper une plaque rigide aux dimensions de l'intérieur de la valise
 - Au centre de la plaque, couper un rectangle aux dimensions de la face supérieure du contrôleur de charge
 - Couper deux bandes de 3M Dual Lock de 2,5cm de longueur
 - Coller une bande au centre de la face arrière du contrôleur de charge
 - Fixer la seconde bande sur la 1ère et en retirer l'antiadhésif
-- Passer le contrôleur de charge à travers le rectangle de la plaque en carton
-- En la tenant par le contrôleur de charge, apposer la plaque de carton sur le bloc de mousse, afin de fixer le contrôleur de charge au bon endroit sur la batterie
+- Passer le contrôleur de charge à travers le rectangle de la plaque
+- En la tenant par le contrôleur de charge, apposer la plaque sur le bloc de mousse, afin de fixer le contrôleur de charge au bon endroit sur la batterie
+<br>![](assets/assembly/assembly_controller.jpg)
 - Presser doucement le contrôleur de charge sur la batterie pour faire prendre l'adhésif
-- Retirer la plaque de carton et câbler la batterie au contrôleur de charge
-- Replacer la plaque de carton<br>
-- Visser 4 vis héxagonales de 8mm dans les supports situés dans les 4 coins de la face intérieur du couvercle de la valise
-- Ajuster le serrage des vis de manière à maintenir la plaque de carton en place lorsque la valise est fermée
+- Retirer la plaque et câbler la batterie au contrôleur de charge
+- Visser 4 vis héxagonales de 8mm dans les supports situés dans les 4 coins de la face intérieure du couvercle de la valise
+<br>![](assets/assembly/assembly_controllerAndScrews.jpg)
+- Replacer la plaque
+- Ajuster le serrage des vis de manière à maintenir la plaque en place lorsque la valise est fermée
 
 #### Passage des câbles internes
 
-- Identifier la position des presse étoupes en piquant la mousse à travers ceux-ci avec un crayon à papier
-- Sortir la plaque, la batterie et la mousse de la valise
-- Aux endroits identifiés, percer des trous traverçants de manière à acheminer les câbles du panneau solaire aux bornes du contrôleur de charge, et le câble de l'antenne vers la face arrière, sans les tordres<br>
-**Le câble d'antenne doit conserver une courbure naturelle à la sortie du trou**
-- Repalcer la mousse dans la valise
-- Tester le passage des câbles à travers les trous percés<br>
-  Si besoin, modeler la mousse pour faire passer les câbles
-- Replacer la batterie
-- Découper un morceau de plaque pour laisser passer le câble d'antenne
+- Retirer la plaque de la valise
+- A travers les presse étoupes, prépercer la parroi du bloc de mousse au crayon de papier
+- A l'aide du cardiallage prédécoupé, réaliser l'achemeinement des câbles du panneau solaire aux bornes du contrôleur de charge
+- De la même manière, réaliser l'acheminement du câble d'antenne vers la face arrière de la valise
+<br>![](assets/assembly/assembly_cableHoles.jpg)
+- Dimensionner les trous dans la parroi de mousse en y faisant passer le câble d'antenne<br>
+  **Ne pas plier le câble d'antenne !**
+- Tester le passage des câbles avec le câble d'antenne<br>
+  Si besoin, modeler la mousse pour faire passer les câbles<br>
+  Le câble d'antenne doit conserver une courbure naturelle à la sortie de son trou, et ne pas passer sur le contrôler de charge losque la valise est fermée
+- Découper un morceau du bord de la plaque pour laisser passer le câble d'antenne
+- Replacer la plaque
 
 #### Fixation des composants électroniques
+
+- Sur le dos de l'ESP32 et du DP0601, coller une bande de 0,5cm de 3M Dual Lock et y fixer son complémentaire
+- Sur le dos du routeur 4G, coller deux bandes de 0,5cm de 3M Dual Lock proches des extrémités, et y fixer leur complémentaire
+<br>![](assets/assembly/assembly_duallock2.jpg)
+- Sur la face interne du couvercle, coller les compasants comme suit
+<br>![](assets/assembly/assembly_final.jpg)
 
 Antenne GNSS flotante
 ---------------------
@@ -178,6 +199,7 @@ Antenne GNSS flotante
 - Presser les bouchons dans leur emplacement
 - Enrubaner le tout avec du Chatterton, de manière à presser les bouchons dans leur emplacement
 - Attendre que la colle soit sèche (généralement 24h)
+<br>![](assets/assembly/assembly_caps.jpg)
 
 ### Assemblage
 
@@ -187,3 +209,4 @@ Antenne GNSS flotante
 - Visser l'antenne à l'extrémité libre du pied
 - Visser une vis à bois dans les petits trous du support pour le bloquer en translation
 - Visser les bouteilles dans leur bouchon
+<br>![](assets/assembly/assembly_buoy.jpg)
