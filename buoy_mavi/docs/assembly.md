@@ -28,7 +28,7 @@ Microcontrôleur ESP32 et Drotek DP0601
 ### Matériel & Outils
 
 |**Matériel**||**Outils**|
-|------------||----------|
+|------------|-|----------|
 |Carte ESP32-WROOM-32||Cutter|
 |Drotek DP0601||Fer à souder|
 |Nappe silicone JST-GH 6 pins||Etain|
@@ -80,14 +80,14 @@ Valise étanche
 ### Matériel & Outils
 
 |**Matériel**||**Outils**|
-|------------||----------|
+|------------|-|----------|
 |12cm de câble électrique rouge||Fer à souder|
 |12cm de câble électrique noir||Support à bras pour soudure|
 |Cosses à oeil x2||Bobine d'étain|
 |||Scotch isolant électrique|
 |||Pince à dénuder|
 |||Pince universelle|
-|||
+||||
 |Valise étanche et ses blocs de mousse de remplissage||Perceuse|
 |Presse étoupe filetage M15 + joint x3||Forets jusqu'à 15mm|
 |Batterie au plomb 20Ah avec boulon de câblage||Cutter|
@@ -179,7 +179,7 @@ Antenne GNSS flotante
 ### Matériel & Outils
 
 |**Matériel**||**Outils**|
-|------------||----------|
+|------------|-|----------|
 |Pièce imprimée en 3D||Chatterton|
 |Colle néoprène||Gants jetables|
 |3 bouteilles de soda|||
