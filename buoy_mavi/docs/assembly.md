@@ -1,8 +1,7 @@
-Assembalge
+Assemblage
 ==========
 
-- Assemblage en groupes de composants
-- Assemblage des goupes de composants
+L'objectif de cette phase d'assemblage est de fabriquer la bouées, et la valise étanche protégeant la partie alimentation, avant d'y fixer les différents composants.
 
 Outils nécéssaires
 ------------------
@@ -12,15 +11,21 @@ Outils nécéssaires
 - Cutter
 - Fer à souder + bobine d'étain
 - Support à bras pour soudure
+- Bobine d'etain
 - Perceuse + forets jusqu'à 15mm
+- Scie
+- Câble USB Type-A vers USB Micro-B
+- Crayon de papier
+- Pince à dénuder
+- Pince universelle
+- Scotch isolant électrique
+- Chatterton
+- Gants jetables
 
-![Outils]()
-
-Aperçu de la valise complète
+Aperçu de la bouée complète
 ----------------------------
-
-![]()
-
+Voici ce à quoi devra ressembler l'assemblage complet.
+<br>![](assets/assembled_buoy.jpg)
 
 Microcontrôleur ESP32 et Drotek DP0601
 --------------------------------------
@@ -93,11 +98,11 @@ Valise étanche
 |Batterie au plomb 20Ah avec boulon de câblage||Cutter|
 ||||
 |Contrôleur de charge solaire||Tournevis cruciforme|
-|Plaque rigide (min 34x29,5cm)||Cutter|
+|Plaque rigide (min 34x29,5cm)||Scie|
 ||||
 |Vis héxagonale 8mm x4||Tournevis héxagonal pour vis 8mm|
 ||||
-|Câble d'antenne||Crayon de papier de 10cm minimum|
+|Câble d'antenne||Crayon de papier|
 
 ### Préparation des câbles de la batterie
 
@@ -160,7 +165,6 @@ Valise étanche
 - Dimensionner les trous dans la parroi de mousse en y faisant passer le câble d'antenne<br>
   **Ne pas plier le câble d'antenne !**
 - Tester le passage des câbles avec le câble d'antenne<br>
-  Si besoin, modeler la mousse pour faire passer les câbles<br>
   Le câble d'antenne doit conserver une courbure naturelle à la sortie de son trou, et ne pas passer sur le contrôler de charge losque la valise est fermée
 - Découper un morceau du bord de la plaque pour laisser passer le câble d'antenne
 - Replacer la plaque
@@ -205,7 +209,7 @@ Antenne GNSS flotante
 
 - Assembler le pied d'antenne
 - Enfiler à fond le support à bouteilles sur le pied<br>
-  Attention au sens, la plus grande surface du support doit être au dessus
+  Attention au sens, la plus grande surface plane du support doit être au dessus
 - Visser l'antenne à l'extrémité libre du pied
 - Visser une vis à bois dans les petits trous du support pour le bloquer en translation
 - Visser les bouteilles dans leur bouchon

@@ -7,10 +7,10 @@ const char* mqttServer = "mavi-mqtt.centipede.fr";
 const int mqttPort = 8090;
 const char* mqttUser = "";
 const char* mqttPassword = "";
-const char* mqtttopic = "buoy/gnss_test";
+const char* mqtttopic = "buoy/mavi";
 
 //material uuid
-const char matUuid[] = "'brou2_";
+const char matUuid[] = "'brou1_";
 
 //Centipede works well and is free
 const char casterHost[] = "caster.centipede.fr";

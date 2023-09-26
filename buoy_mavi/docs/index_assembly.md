@@ -1,15 +1,15 @@
 Tutoriel d'assemblage
 =====================
-## Liste du matériel
+## Détail du matériel
 #### Matériel GNSS
 
 |**Nom**|**Prix**|**Fournisseur**|
 |------------------|---------|------------|
 |Drotek DP0601 RTK GNSS (XL F9P)|179,90€|
-|JST-GH 6 pins Silicone cable *(1)*||
-|Drotek DA910 Multiband GNSS Antenna|99,90€|
-|Magnetic antenna pod *(2)*||
-|5m SMA(Female) TNC(Female) coaxial antenna cable||
+|Câlble silicone JST-GH 6 pins *(1)*||
+|Antenne GNSS multibandes Drotek DA910|99,90€|
+|Pied d'antenne aimanté *(2)*||
+|Câble coaxial SMA (femelle) TNC (femelle) de 5m||
 
 *(1) Fourni avec le Drotek DP0601*
 
@@ -32,9 +32,9 @@ Tutoriel d'assemblage
 #### Alimentation
 |**Nom**|**Prix**|**Fournisseur**|
 |------------------|---------|------------|
-|Panneau solaire50W|50€|
+|Panneau solaire 50W|50€|
 |Contrôleur de charge solaire||
-|Batterie au Plomb 20Ah||
+|Batterie au plomb 20Ah||
 |Câble 3A double brin 50cm||
 |Cosse à oeil x2||
 
@@ -42,11 +42,11 @@ Tutoriel d'assemblage
 |**Nom**|**Prix**|**Fournisseur**|
 |------------------|---------|------------|
 |Valise HMF étanche (34x29,5x15,5cm)||
-|Plaque en carton rigide (min 34x29,5cm)||
-|4 vis (35x8mm)||
+|Plaque rigide (min 34x29,5cm)||
+|4 vis héxagonales (35x8mm)||
 
 
 # Etapes d'assemblage
 
 - [Configuration logicielle](software_config.md)
-- [Asemblage]()
+- [Asemblage](assembly.md)
