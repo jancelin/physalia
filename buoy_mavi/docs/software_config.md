@@ -1,7 +1,8 @@
 Configuration logicielle
 ========================
 
-## Configuration du routeur 4G
+Configuration du routeur 4G
+---------------------------
 
 ### Matériel
 
@@ -59,7 +60,8 @@ Configuration logicielle
 - Mettre le routeur hors tension
 - Laisser le routeur charger complètement
 
-## Dépôt GitHub
+Dépôt GitHub
+------------
 
 Un dépôt Git du projet est diponible sur [GitHub](https://github.com/jancelin/physalia). Pour poursuivre ce tutoriel d'assemblage, il est nécéssaire de cloner ce dépôt, afin d'avoir tous les fichiers de configuration sour la main.
 
@@ -78,11 +80,12 @@ Un dépôt Git du projet est diponible sur [GitHub](https://github.com/jancelin/
 
 Au terme de cette étape le répertoire `physalia` devrait être présent sur votre bureau, peu importe la méthode suivie. Celui-ci contient tous les fichiers nécéssaire besoin pour la configuration logicielle des bouées.
 
-## Configuration du microcontrôleur ESP32
+Configuration du microcontrôleur ESP32
+--------------------------------------
 
 ### Matériel
 
-- Ordinateur
+- Ordinateur + connexion internet
 - Carte électronique ESP32-WROOM-32
 - Câble USB Type-A vers USB Micro-B
 
@@ -135,11 +138,12 @@ Au terme de cette étape le répertoire `physalia` devrait être présent sur vo
 - Une fois l'ESP32 connecté au routeur, la sorite du moniteur série confirme la connexion
 ![](assets/Arduino/arduino_sermon2.png)
 
-## Configuration du Drotek DP0601
+Configuration du Drotek DP0601
+------------------------------
 
 ### Matériel
 
-- Ordinateur
+- Ordinateur + connexion internet
 - Drotek DP0601
 - Câble USB Type-A vers USB Micro-B
 
@@ -202,3 +206,8 @@ Au terme de cette étape le répertoire `physalia` devrait être présent sur vo
 	+ Selectionner `0 - BBR` et `1 - FLASH` en utilisant `Ctrl+Maj`
 	+ Cliquer sur `Send` pour sauvgarder la configuration
 	<br>![](assets/DP0601/dp_CFG.png)
+
+Assemblage
+----------
+Féléiciations, vous avez terminé la configuration logicielle de la bouée.<br>
+Rendez-vous sur le [tutoriel d'assemblage](assembly.md) pour la suite des hostilités.

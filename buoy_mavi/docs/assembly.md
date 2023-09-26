@@ -1,9 +1,9 @@
 Assemblage
 ==========
 
-L'objectif de cette phase d'assemblage est de fabriquer la bouées, et la valise étanche protégeant la partie alimentation, avant d'y fixer les différents composants.
+L'objectif de cette phase d'assemblage est de fabriquer la bouée, ainsi que la valise étanche protégeant son alimentation, avant d'y fixer les différents composants.
 
-Outils nécéssaires
+Outils nécessaires
 ------------------
 
 - Tournevis curciforme
@@ -21,6 +21,7 @@ Outils nécéssaires
 - Scotch isolant électrique
 - Chatterton
 - Gants jetables
+- Colle néoprene
 
 Aperçu de la bouée complète
 ----------------------------
@@ -50,8 +51,7 @@ Microcontrôleur ESP32 et Drotek DP0601
 - Séparer les brins correspondant au 5V, GND, B4 et B5 du port UART1 du DP0601
 - Dénuder à l'ongle les extrémités séparées
 <br>![](assets/assembly/assembly_flatcable.jpg)
-- Fixer l'ESP32 sur le support à souder<br>
-  Le dos de la carte doit être au dessus
+- Fixer l'ESP32 sur le support à souder
 - Soudures :
 	+ Pour cahque fil :
 		* De l'avant vers le dos de la carte, passer la partie dénudée du fil à travers les trou de la pin à souder
@@ -185,8 +185,8 @@ Antenne GNSS flotante
 |**Matériel**||**Outils**|
 |------------|-|----------|
 |Pièce imprimée en 3D||Chatterton|
-|Colle néoprène||Gants jetables|
-|3 bouteilles de soda|||
+|3 bouteilles de soda||Colle néoprène|
+|||Gants jetables|
 ||||
 |Antenne GNSS|||
 |Pied d'antenne|||

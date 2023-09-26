@@ -1,6 +1,14 @@
 Tutoriel d'assemblage
 =====================
-## Détail du matériel
+
+Ce tutoriel présente la marche à suivre afin de fabriquer une bouée Physalia. Il consiste en une partie configuration logicielle et une partie assemblage :
+
+- [Configuration logicielle](software_config.md)
+- [Asemblage](assembly.md)
+
+Assurer vous de vous procurer le matériel nécessaire à la fabrication d'une bouée, communiqué ci-dessous.
+
+## Matériel nécessaire
 #### Matériel GNSS
 
 |**Nom**|**Prix**|**Fournisseur**|
@@ -44,9 +52,3 @@ Tutoriel d'assemblage
 |Valise HMF étanche (34x29,5x15,5cm)||
 |Plaque rigide (min 34x29,5cm)||
 |4 vis héxagonales (35x8mm)||
-
-
-# Etapes d'assemblage
-
-- [Configuration logicielle](software_config.md)
-- [Asemblage](assembly.md)
