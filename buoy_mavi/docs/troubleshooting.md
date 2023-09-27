@@ -36,14 +36,14 @@ Ils présentent deux sens de lecture complémentaires :
 
 ### Exemple d'utilisation
 
-**Panne :** Interruption du flux de données sortant de la bouée
+<ins>Panne :</ins> Interruption du flux de données sortant de la bouée
 
-**Etat du système :** 
+<ins>Etat du système :</ins> 
 
 - Aucun des composants électroniques n'est allumé.
 - Le contrôleur de charge est opérationnel et indique que la batterie est chargée.
 
-**Dépannage :**
+<ins>Dépannage :</ins>
 
 1. L'arbre correspondant est le premier des "*Pannes en fonctionnement*".
 2. Le constat "*Aucun composant allumé*" correspond à la situation.
@@ -59,9 +59,9 @@ Ils présentent deux sens de lecture complémentaires :
 Astuces de dépannage
 --------------------
 
-- **Astuce n°1 :** Debug via moniteur série<br>
+- <ins>Astuce n°1 :</ins> Debug via moniteur série<br>
   Il est possible de monitorer l'état du système pendant son fonctionnement en analysant les messages envoyés par l'ESP32 dans la sortie du moniteur série Arduino.
-- **Astuce n°2 :** Connexion au routeur 4G<br>
+- <ins>Astuce n°2 :</ins> Connexion au routeur 4G<br>
   Si le routeur 4G a bien été confiuré, son point d'accès WiFi admet jusqu'à deux appareils connectés en simultané. Ceci signifie qu'il est possible d'y connecter un smartphone ou un PC pour s'assurer, à travers l'interface web de gestion du router, que l'ESP32 est bien connecté au point d'accès.
 
 Pannes au démarrage
