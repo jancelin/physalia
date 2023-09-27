@@ -6,29 +6,29 @@ Les pannes identifiées du système ont été séparées en deux catégories :
 - Les pannes au démarrage
 - Les pannes en fonctionnement
 
-La procédure de dépannage à adopter est déterminée par les arbres décisonnels suivants.
+La procédure de dépannage à adopter est déterminée par les arbres des causes suivants.
 
 **Attention, il existe de nombreux modes défaillance possibles du système, ce pourquoi ce document n'est pas exhaustif. Il est donc possible que la panne que vous rencontrez n'y soit pas répertoriée. Le cas échéant, merci d'en faire part à votre administrateur.**
 
-Arbes décisionnels
+Arbes des causes
 -------------------
 
 ### Lecture
 
-Les arbres décisionnels permettent d'identifier les causes probables d'une panne, et les actions à mettre en oeuvre pour la résoudre. Ils sont contitués de branches, débutant par une origine (à l'extrème gauche) et terminant par des feuilles (à l'extrème droite). Chaque arbre concerne une panne particulière.
+Les arbres des causes présentés permettent d'identifier les causes probables d'une panne, et les actions à mettre en oeuvre pour la résoudre. Ils sont contitués d'une origine (extrémité gauche de l'arbe, en couleur); et de branches, débutant par un noeud (intersection entre deux branches), et terminant soit par un autre noeud, soit par une feuille (extrémité droite de l'arbre). Chaque arbre concerne une panne particulière.
 
-Ils présentent deux sens de lecture :
+Ils présentent deux sens de lecture complémentaires :
 
-- De gauche à droite :<br>
-  Ce sens de lecture part de la panne, jusqu'à identifier la cause précise et sa solution.<br>
-  A l'origine, en couleur, la panne rencontrée est décrite. Lui susccèdent, en couleur claire, des constats permettent d'orienter la recherche de cause. Ensuite, en couleur sombre, les causes, de plus en pus précises qu'elles progressent vers les feuilles de la branche. Finalement, les feuilles de la branche proposent les solution qui permettraient de résoudre la panne.
+- <ins>De gauche à droite :</ins><br>
+  Ce sens de lecture part de l'origine, jusqu'à l'identification de la cause précise  de la panne et sa solution.<br>
+  La panne est formulée à l'origine colorée de l'arbre. Lui susccèdent, en couleur claire, d'éventuels constats permettant d'orienter la recherche de cause. Viennent ensuite les causes, en couleur sombre, et de plus en pus précises qu'elles progressent vers les feuilles de l'arbre. Finalement, les feuilles proposent une solution qui permettrait de résoudre la panne.
 
-- De haut en bas :<br>
-  Les constats et causes ont été organisés par probabilité d'apparition. Sur la même ligne verticale, les plus probables se situent en haut, et les moins probables en bas.
+- <ins>De haut en bas :</ins><br>
+  Les constats et causes ont été organisés par probabilité d'apparition. Pour celles ou ceux issus d'un même noeud, les plus probables se situent en haut, et les moins probables en bas.
 
 ### Utilisation
 
-1. Trouver l'arbre correspondant à la panne (origine en couleur de l'arbre).
+1. Trouver l'arbre correspondant à la panne (origine de l'arbre).
 2. Identifier le constat correspondant à la situation (couleur claire).
 3. Pour ce constat, éliminer les causes en les parcourant de la plus à la moins probable.
 4. A la première cause non éliminée, appliquer la solution correspondante.
@@ -41,8 +41,7 @@ Ils présentent deux sens de lecture :
 **Etat du système :** 
 
 - Aucun des composants électroniques n'est allumé.
-- Le contrôleur de charge est opérationnel.
-- Le contrôleur de charge indique que la batterie est chargée.
+- Le contrôleur de charge est opérationnel et indique que la batterie est chargée.
 
 **Dépannage :**
 
@@ -55,14 +54,28 @@ Ils présentent deux sens de lecture :
   Dans la branche "*Défaillance contrôleur de charge*" :
 	- Le voyant de sortie de contrôleur de charge est éteint, sa sortie n'est pas active.
 4. L'activation de la sortie du contrôleur de charge solutionne le problème.
-5. Problème solutionné.
+5. Panne résolue.
+
+Astuces de dépannage
+--------------------
+
+- **Astuce n°1 :** Debug via moniteur série<br>
+  Il est possible de monitorer l'état du système pendant son fonctionnement en analysant les messages envoyés par l'ESP32 dans la sortie du moniteur série Arduino.
+- **Astuce n°2 :** Connexion au routeur 4G<br>
+  Si le routeur 4G a bien été confiuré, son point d'accès WiFi admet jusqu'à deux appareils connectés en simultané. Ceci signifie qu'il est possible d'y connecter un smartphone ou un PC pour s'assurer, à travers l'interface web de gestion du router, que l'ESP32 est bien connecté au point d'accès.
 
 Pannes au démarrage
-------------
+-------------------
+
+Cette section concerne uniquement les pannes survenues juste après la mise sous tension du système.
+
+![](assets/troubleshooting/tbshooting_start.png)
 
 
 Pannes en fonctionnement
------------------
+------------------------
+
+Dans cette section, on supposera que le système fonctionnait avant la panne. Si le système est tombé en panne juste après sa mise sous tension, se référer aux "*Pannes au démarrage*".
 
 ![](assets/troubleshooting/tbshooting_operation.png)
 
