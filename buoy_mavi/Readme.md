@@ -1,3 +1,10 @@
+---
+layout: default
+title: MAVI
+nav_order: 5
+has_children: true
+---
+
 ![TETRAE](./docs/assets/logo_tetrae_72dpi.png)
 
 > https://www.tetrae.fr/
