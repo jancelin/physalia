@@ -7,7 +7,7 @@ has_children: true
 
 # PHYSALIA
 
-![Physalia](/assets/physalia700x204.png)
+![Physalia](/assets/Illustration_sans_titre_2.jpg)
 
 ## Plateforme HYdrographique pour la Surveillance Altimétrique du LIttoral 
 
@@ -21,8 +21,12 @@ Les bouées ont été construites autour d’une structure centrale imprimée en
 
 ![buoy1_small](/assets/buoy/buoy_minimes_ponton.png)
 
-Des essais réalisés sur l’île d’Aix (France) ont permis d’évaluer la précision des bouées en comparant les données obtenues avec celles d’un marégraphe radar. La comparaison est réalisée avec les données corrigées en temps réel et celles corrigées en post-traitement. Les résultats obtenus montrent une erreur quadratique moyenne (RMSE) comprise entre 1,93 et 3,03 cm validant ainsi l’utilisation des bouées GNSS-RTK développée de manière économique pour un usage marégraphique.
+- Des essais réalisés sur l’île d’Aix (France) ont permis d’évaluer la précision des bouées en comparant les données obtenues avec celles d’un marégraphe radar. La comparaison est réalisée avec les données corrigées en temps réel et celles corrigées en post-traitement. Les résultats obtenus montrent une erreur quadratique moyenne (RMSE) comprise entre 1,93 et 3,03 cm validant ainsi l’utilisation des bouées GNSS-RTK développée de manière économique pour un usage marégraphique.
 
+
+![mission Thalia 10/22](/assets/mission_thalia_10-22.gif)
+![mission Thalia 10/22](/assets/thalia1_1022.jpg)
+![mission Thalia 10/22](/assets/thalia2_1022.jpg)
 ![VID_20210526_131756](/assets/buoy/buoy_iledaix.gif)
 ![monitoring](/assets/grafana/grafana2_small.png)
 ![partenaires](/assets/partenaires.png)

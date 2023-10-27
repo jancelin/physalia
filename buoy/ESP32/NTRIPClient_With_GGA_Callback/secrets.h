@@ -2,12 +2,13 @@
 const char ssid[] = "buoy";
 const char password[] = "12345678";
 
+
 //MQTT connexion
 const char* mqttServer = "147.100.179.32";
 const int mqttPort = 8090;
 const char* mqttUser = "";
 const char* mqttPassword = "";
-const char* mqtttopic = "buoy/gnss";
+const char* mqtttopic = "buoy/gnss_test";
 
 //material uuid
 const char matUuid[] = "'Physalita1_";
