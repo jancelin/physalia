@@ -7,25 +7,25 @@ const char gprsPass[] = ""; // GPRS Password
 const char simPIN[]   = "0000"; 
 
 //Your WiFi credentials
-const char ssid[] = "BUOY";
-const char password[] = "12345678";
+const char ssid[] = "GeoPoppy_Pi3x";
+const char password[] = "geopoppy";
 
 //MQTT connexion
-const char* mqttServer = "127.0.0.1";
-const int mqttPort = 1883;
+const char* mqttServer = "147.100.179.215";
+const int mqttPort = 8090;
 const char* mqttUser = "";
 const char* mqttPassword = "";
 const char* mqtttopic = "buoy/gnss";
 
 //material uuid
-const char matUuid[] = "'Buoy_eps32_";
+const char matUuid[] = "'ESP32_";
 
 //Centipede works well and is free
-const char casterHost[] = "caster.centipede.fr";
-const uint16_t casterPort = 2101;
-const char casterUser[] = "centipede32"; //User must provide their own email address to use RTK2Go
+const char casterHost[] = "crtk.fr";
+const uint16_t casterPort = 9999;
+const char casterUser[] = "centipede32";
 const char casterUserPW[] = "centipede32";
-const char mountPoint[] = "LIENSS"; //The mount point you want to get data from
+const char mountPoint[] = "ME"; //The mount point you want to get data from
 
 //Send gga to caster
 const bool transmitLocation = true;

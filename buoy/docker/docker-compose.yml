@@ -1,11 +1,10 @@
   rtkbaserover:
     build: ./
     container_name: buoy
-    restart: always
+#    restart: on-failure
     ports:
       - 1234:80
+      - 1881:1880
     privileged: true
     volumes:
       - /dev:/dev
-
-

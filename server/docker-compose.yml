@@ -20,7 +20,7 @@ services:
       - POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology
       - REPLICATION_USER=replicator
       - REPLICATION_PASS=replicator
-    restart: always
+    restart: on-failure
     volumes:
       - postgis:/var/lib/postgresql
       - ./postgis/setup-db.sql:/docker-entrypoint-initdb.d/setup-db.sql #au premier démarrage la base, via le script .sql, est construite
@@ -29,7 +29,7 @@ services:
   pgadmin:
     image: dpage/pgadmin4
     container_name: pgadmin4
-    restart: always
+    restart: on-failure
     ports:
       - 5051:80
     environment:
@@ -42,7 +42,7 @@ services:
   grafana:
     image: grafana/grafana
     container_name: grafana
-    restart: always
+    restart: on-failure
     depends_on:
       - postgis # indique que le service base de donnée est nécessaire
     links:
@@ -72,7 +72,7 @@ services:
   tracking:
     build: ./tracking
     container_name: tracking
-    restart: always
+    restart: on-failure
     depends_on:
       - postgis  # indique que le service base de donnée est nécessaire
     links:
@@ -86,5 +86,3 @@ services:
       - POSTGRES_USER
       - POSTGRES_PASS
       - TBL
-
-

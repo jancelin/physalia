@@ -39,7 +39,7 @@ mqtt client: https://techtutorialsx.com/2017/04/24/esp32-publishing-messages-to-
 auto reconnect wifi: http://community.heltec.cn/t/solved-wifi-reconnect/1396/3
 */
 
-#include <WiFi.h>
+///#include <WiFi.h>
 #include "secrets.h"
 
 #include <SparkFun_u-blox_GNSS_Arduino_Library.h> //http://librarymanager/All#SparkFun_u-blox_GNSS
@@ -50,7 +50,7 @@ SFE_UBLOX_GNSS myGNSS;
 
 #include <Wire.h>
  
-WiFiClient espClient;
+///WiFiClient espClient;
 
 //The ESP32 core has a built in base64 library but not every platform does
 //We'll use an external lib if necessary.
@@ -59,6 +59,18 @@ WiFiClient espClient;
 #else
 #include <Base64.h> //nfriendly library from https://github.com/adamvr/arduino-base64, will work with any platform
 #endif
+
+// Set serial for debug console (to the Serial Monitor, default speed 115200)
+#define SerialMon Serial
+// Set serial for AT commands
+#define SerialAT Serial1
+
+// Define the serial console for debug prints, if needed
+#define TINY_GSM_DEBUG SerialMon
+
+// set GSM PIN, if any
+#define GSM_PIN "0000"
+
 
 // TTGO T-Call pins
 #define MODEM_RST            5
@@ -72,24 +84,68 @@ WiFiClient espClient;
 #define I2C_SDA_2            18
 #define I2C_SCL_2            19
 
+// Set serial for AT commands (to SIM800 module)
+#define SerialAT Serial1
+
+// Configure TinyGSM library
+#define TINY_GSM_MODEM_SIM800      // Modem is SIM800
+#define TINY_GSM_RX_BUFFER   1024  // Set RX buffer to 1Kb
+
+#include <TinyGsmClient.h>
+
+#ifdef DUMP_AT_COMMANDS
+  #include <StreamDebugger.h>
+  StreamDebugger debugger(SerialAT, SerialMon);
+  TinyGsm modem(debugger);
+#else
+  TinyGsm modem(SerialAT);
+#endif
+
+// I2C for SIM800 (to keep it running when powered from battery)
+TwoWire I2CPower = TwoWire(0);
+
+// I2C for GNSS
 TwoWire I2CBME = TwoWire(1);
 
+// TinyGSM ClienI2C_SDA_2t for Internet connection
+TinyGsmClient client(modem);
+
+
+#define uS_TO_S_FACTOR 1000000UL   /* Conversion factor for micro seconds to seconds */
+#define TIME_TO_SLEEP  5        /* Time ESP32 will go to sleep (in seconds) 3600 seconds = 1 hour */
+
+#define IP5306_ADDR          0x75
+#define IP5306_REG_SYS_CTL0  0x00
+
+bool setPowerBoostKeepOn(int en){
+  I2CPower.beginTransmission(IP5306_ADDR);
+  I2CPower.write(IP5306_REG_SYS_CTL0);
+  if (en) {
+    I2CPower.write(0x37); // Set bit1: 1 enable 0 disable boost keep on
+  } else {
+    I2CPower.write(0x35); // 0x37 is default reg value
+  }
+  return I2CPower.endTransmission() == 0;
+}
+
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-PubSubClient client(espClient); //MQTT
+TinyGsmClient espClient(modem);
+
+PubSubClient mqtt(espClient); //MQTT
 long lastReconnectAttempt = 0; 
 
 void callback(char* topic, byte* payload, unsigned int length) {
   // handle message arrived
 }
 
-boolean reconnect() {
-  if (client.connect(mqtttopic)) {
+boolean mqttreconnect() {
+  if (mqtt.connect(mqtttopic)) {
     // Once connected, publish an announcement...
-    client.publish(mqtttopic, matUuid);
+    mqtt.publish(mqtttopic, matUuid);
     // ... and resubscribeI2CBME
-    client.subscribe(mqtttopic);
+    mqtt.subscribe(mqtttopic);
   }
-  return client.connected();
+  return mqtt.connected();
 }
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 //Global variables
@@ -99,7 +155,8 @@ const unsigned long maxTimeBeforeHangup_ms = 10000UL; //If we fail to get a comp
 
 //bool transmitLocation = true;  change to secrets.h      //By default we will transmit the unit's location via GGA sentence.
 
-WiFiClient ntripClient; // The WiFi connection to the NTRIP server. This is global so pushGGA can see if we are connected.
+///WiFiClient ntripClient; // The WiFi connection to the NTRIP server. This is global so pushGGA can see if we are connected.
+TinyGsmClient ntripClient(modem);
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Callback: pushGPGGA will be called when new GPGGA NMEA data arrives
@@ -118,6 +175,7 @@ void pushGPGGA(NMEA_GGA_data_t *nmeaData)
     Serial.print((const char *)nmeaData->nmea); // .nmea is printable (NULL-terminated) and already has \r\n on the end
 
     //Push our current GGA sentence to caster
+    ntripClient.print((const char *)nmeaData->nmea);
     ntripClient.print((const char *)nmeaData->nmea);
   }
 }
@@ -139,7 +197,8 @@ void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
   // create an object
   JsonObject object = doc.to<JsonObject>();
 
-  doc["capteur"] = matUuid + WiFi.macAddress()+"'";//matUuid; // Print capteur uuid
+  //doc["capteur"] = matUuid + WiFi.macAddress()+"'";//matUuid; // Print capteur uuid
+  doc["capteur"] = "test'"; // Print capteur uuid
 
   uint16_t y = ubxDataStruct->year; // Print the year
   uint8_t mo = ubxDataStruct->month; // Print the year
@@ -200,7 +259,7 @@ void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
   String msg;
   String output = "JSON = ";
   serializeJson(doc, msg);
-  client.publish(mqtttopic, msg.c_str());
+  mqtt.publish(mqtttopic, msg.c_str());
   Serial.println("Message send");
 }
 
@@ -210,9 +269,40 @@ void setup()
 {
   Serial.begin(115200);
   
+  
   Serial.println(F("NTRIP testing"));
 
-  Wire.begin(I2C_SDA_2, I2C_SCL_2); //Start I2C
+  I2CPower.begin(I2C_SDA, I2C_SCL, 400000); //Start SIM800 I2C communication
+  Wire.begin(I2C_SDA_2, I2C_SCL_2); //Start GNSS I2C
+
+  delay(10000);
+
+    // Keep power when running from battery
+  bool isOk = setPowerBoostKeepOn(1);
+  SerialMon.println(String("IP5306 KeepOn ") + (isOk ? "OK" : "FAIL"));
+
+  // Set modem reset, enable, power pins
+  pinMode(MODEM_PWKEY, OUTPUT);
+  pinMode(MODEM_RST, OUTPUT);
+  pinMode(MODEM_POWER_ON, OUTPUT);
+  digitalWrite(MODEM_PWKEY, LOW);
+  digitalWrite(MODEM_RST, HIGH);
+  digitalWrite(MODEM_POWER_ON, HIGH);
+
+  // Set GSM module baud rate and UART pins
+  SerialAT.begin(115200, SERIAL_8N1, MODEM_RX, MODEM_TX);
+  delay(10000);
+
+  // Restart SIM800 module, it takes quite some time
+  // To skip it, call init() instead of restart()
+  SerialMon.println("Initializing modem...");
+  modem.restart();
+  // use modem.init() if you don't need the complete restart
+
+  // Unlock your SIM card with a PIN if needed
+  if (strlen(simPIN) && modem.getSimStatus() != 3 ) {
+    modem.simUnlock(simPIN);
+  }
   
   while (myGNSS.begin() == false) //Connect to the Ublox module using Wire port
   {
@@ -241,65 +331,127 @@ void setup()
 
   //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-  bool keepTrying = true;
-  while (keepTrying)
-  {
-    Serial.print(F("Connecting to local WiFi"));
+//  bool keepTrying = true;
+//  while (keepTrying)
+//  {
+//    Serial.print(F("Connecting to local WiFi"));
+//
+//    unsigned long startTime = millis();
+//    WiFi.begin(ssid, password);
+//    while ((WiFi.status() != WL_CONNECTED) && (millis() < (startTime + 10000))) // Timeout after 10 seconds
+//    {
+//      delay(500);
+//      Serial.print(F("."));
+//    }
+//    Serial.println();
+//
+//    if (WiFi.status() == WL_CONNECTED)
+//      keepTrying = false; // Connected!
+//    else
+//    {
+//      WiFi.disconnect(true);
+//      WiFi.mode(WIFI_OFF);
+//    }
+//  }
+//
+//  Serial.println(F("WiFi connected with IP: "));
+//  Serial.println(WiFi.localIP());
+//  WiFi.setAutoReconnect(true);
+//  WiFi.persistent(true);
+//  delay(500); 
 
-    unsigned long startTime = millis();
-    WiFi.begin(ssid, password);
-    while ((WiFi.status() != WL_CONNECTED) && (millis() < (startTime + 10000))) // Timeout after 10 seconds
-    {
-      delay(500);
-      Serial.print(F("."));
+////SIM800
+//// Unlock your SIM card with a PIN if needed
+//    if (strlen(simPIN) && modem.getSimStatus() != 3 ) {
+//        modem.simUnlock(simPIN);
+//    }
+//  SerialMon.print("Connecting to APN: ");
+//  SerialMon.print(apn);
+//  if (!modem.gprsConnect(apn, gprsUser, gprsPass)) {
+//    SerialMon.println(" fail");
+//  }
+//  else {
+//    SerialMon.println(" OK");
+
+ //------------------------------------
+    // Restart takes quite some time
+    // To skip it, call init() instead of restart()
+    SerialMon.println("Initializing modem...");
+    modem.restart();
+
+    // Turn off network status lights to reduce current consumption
+    ///turnOffNetlight();
+
+    // The status light cannot be turned off, only physically removed
+    //turnOffStatuslight();
+
+    // Or, use modem.init() if you don't need the complete restart
+    String modemInfo = modem.getModemInfo();
+    SerialMon.print("Modem: ");
+    SerialMon.println(modemInfo);
+
+    // Unlock your SIM card with a PIN if needed
+    if (strlen(simPIN) && modem.getSimStatus() != 3 ) {
+        modem.simUnlock(simPIN);
     }
-    Serial.println();
 
-    if (WiFi.status() == WL_CONNECTED)
-      keepTrying = false; // Connected!
-    else
-    {
-      WiFi.disconnect(true);
-      WiFi.mode(WIFI_OFF);
+    SerialMon.print("Waiting for network...");
+    if (!modem.waitForNetwork(240000L)) {
+        SerialMon.println(" fail");
+        delay(15000);
+        return;
     }
-  }
+    SerialMon.println(" OK");
 
-  Serial.println(F("WiFi connected with IP: "));
-  Serial.println(WiFi.localIP());
-  WiFi.setAutoReconnect(true);
-  WiFi.persistent(true);
-  delay(500); 
+    // When the network connection is successful, turn on the indicator
+    ///digitalWrite(LED_GPIO, LED_ON);
+
+    if (modem.isNetworkConnected()) {
+        SerialMon.println("Network connected");
+    }
+
+    SerialMon.print(F("Connecting to APN: "));
+    SerialMon.print(apn);
+    if (!modem.gprsConnect(apn, gprsUser, gprsPass)) {
+        SerialMon.println(" fail");
+        delay(10000);
+        //return;
+        ESP.restart();
+    }
+    SerialMon.println(" OK");
+
+  //-------------------------------------
+
 
   //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-  client.setServer(mqttServer, mqttPort);
-  client.setCallback(callback);
- 
-  while (!client.connected()) {
-    Serial.println("Connecting to MQTT...");
- 
-    if (client.connect("ESP32Client", mqttUser, mqttPassword )) {
- 
-      Serial.println("connected");
- 
-    } else {
- 
-      Serial.print("failed with state ");
-      Serial.print(client.state());
-      delay(1500);
-      lastReconnectAttempt = 0;
-    }
-  }
+  mqtt.setServer(mqttServer, mqttPort);
+  mqtt.setCallback(callback);
 
   //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
   while (Serial.available()) // Empty the serial buffer
-    Serial.read();
+  Serial.read();
 }
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 void loop()
 {
+  
+ if (!mqtt.connected()) {
+    SerialMon.println("=== MQTT NOT CONNECTED ===");
+    // Reconnect every 10 seconds
+    uint32_t t = millis();
+    if (t - lastReconnectAttempt > 10000L) {
+      lastReconnectAttempt = t;
+      if (mqttreconnect()) {
+        lastReconnectAttempt = 0;
+      }
+    }
+    delay(100);
+    return;
+  }
+  
   myGNSS.checkUblox(); // Check for the arrival of new GNSS data and process it.
   myGNSS.checkCallbacks(); // Check if any GNSS callbacks are waiting to be processed.
 
@@ -364,31 +516,44 @@ void loop()
   }
   //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
   //MQTT
-  if (!client.connected()) {
+  if (!mqtt.connected()) {
     long now = millis();
     if (now - lastReconnectAttempt > 5000) {
       lastReconnectAttempt = now;
       // Attempt to reconnect
-      if (reconnect()) {
+      if (mqttreconnect()) {
         lastReconnectAttempt = 0;
       }
     }
   } else {
     // Client connected
 
-    client.loop();
+    mqtt.loop();
   }
+  mqtt.loop();
   //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-  // Wifi auto reconnect
-  delay(1000);
-  if(WiFi.status() == WL_CONNECTED){
-    //Serial.println("WIFI connect!!!!");
-    }
-  else{
-    Serial.println("WIFI disconnected. reconnect...");
-    WiFi.reconnect();
+//  // Wifi auto reconnect
+//  delay(1000);
+//  if(WiFi.status() == WL_CONNECTED){
+//    //Serial.println("WIFI connect!!!!");
+//    }
+//  else{
+//    Serial.println("WIFI disconnected. reconnect...");
+//    WiFi.reconnect();
+//}
+//  // GPRS auto reconnect
+//  delay(1000);
+//  if(WiFi.status() == WL_CONNECTED){
+//    //Serial.println("WIFI connect!!!!");
+//    }
+//  else{
+//    Serial.println("WIFI disconnected. reconnect...");
+//    WiFi.reconnect();
+//}
+
 }
-}
+
+
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -465,7 +630,7 @@ bool beginClient()
     // Send the server request
     Serial.println(F("Sending server request: "));
     Serial.println(serverRequest);
-    ntripClient.write(serverRequest, strlen(serverRequest));
+    //ntripClient.write(serverRequest, strlen(serverRequest));
 
     //Wait up to 5 seconds for response
     unsigned long startTime = millis();
@@ -582,7 +747,7 @@ void closeConnection()
     ntripClient.stop();
   }
   Serial.println(F("Disconnected!"));
-}  
+}
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
