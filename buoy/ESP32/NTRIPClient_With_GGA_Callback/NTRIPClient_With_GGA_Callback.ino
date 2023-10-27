@@ -171,7 +171,7 @@ void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
   uint32_t hAcc = ubxDataStruct->hAcc; // Print the horizontal accuracy estimate
   doc["hacc_mm"] = hAcc;
 
-  uint32_t vAcc = ubxDataStruct->vAcc; // Print the horizontal accuracy estimate
+  uint32_t vAcc = ubxDataStruct->vAcc; // Print the vertical accuracy estimate
   doc["vacc_mm"] = vAcc;
 
   uint8_t numSV = ubxDataStruct->numSV; // Print tle number of SVs used in nav solution
@@ -194,7 +194,7 @@ void setup()
 {
   Serial.begin(115200);
   Serial.println(F("NTRIP testing"));
-
+  
   Wire.begin(); //Start I2C
 
   while (myGNSS.begin() == false) //Connect to the Ublox module using Wire port
@@ -216,7 +216,7 @@ void setup()
 
   myGNSS.setNMEAGPGGAcallbackPtr(&pushGPGGA); // Set up the callback for GPGGA
 
-  myGNSS.enableNMEAMessage(UBX_NMEA_GGA, COM_PORT_I2C, 10); // Tell the module to output GGA every 10 seconds
+  myGNSS.enableNMEAMessage(UBX_NMEA_GGA, COM_PORT_I2C, 15); // Tell the module to output GGA every 15 seconds
 
   myGNSS.setAutoPVTcallbackPtr(&printPVTdata); // Enable automatic NAV PVT messages with callback to printPVTdata so we can watch the carrier solution go to fixed
 

@@ -12,14 +12,23 @@ LABEL "GNU Affero General Public License v3 (AGPL-3.0)"="julien.ancelin@inrae.fr
 
 RUN apt-get update && apt-get install -y wget git apt-utils systemd lsb-release
 
-RUN wget https://raw.githubusercontent.com/jancelin/rtkbase/dev_rtkrover/tools/install.sh
+RUN wget https://raw.githubusercontent.com/Stefal/rtkbase/master/tools/install.sh -O install.sh
 RUN find ./ -type f -iname "*.sh" -exec chmod +x {} \;
 RUN sed -i -e "s/\$(logname)/root/g" ./install.sh
-RUN sed -i -e "s/sudo -u root//g" ./install.sh
+RUN sed -i -e 's/sudo -u "root"//g' ./install.sh
+RUN cat ./install.sh
 RUN ./install.sh --dependencies --rtklib --rtkbase-repo --gpsd-chrony
 #Change input data :serial to tcpclient
 RUN sed -i -e 's/in_serial="serial/\in_serial="tcpcli/g' ./rtkbase/run_cast.sh
 RUN sed -i -e "s/\$(logname)/root/g" ./rtkbase/copy_unit.sh
 RUN ./install.sh --unit-files
+
+RUN apt-get install -y init  usbutils systemd
+RUN ./install.sh --start-services
+
+COPY run.sh ./
+RUN chmod +x ./run.sh
+
+ENTRYPOINT [ "./run.sh" ]
 
 CMD [ "/sbin/init" ]
