@@ -262,8 +262,10 @@ void setup()
   while (!client.connected()) {
     Serial.println("Connecting to MQTT...\n");
  
-    if (client.connect("ESP32Client", mqttUser, mqttPassword )) {
- 
+    //if (client.connect("ESP32Client", mqttUser, mqttPassword )) {
+    //add a uuid for each rover https://github.com/knolleary/pubsubclient/issues/372#issuecomment-352086415
+    if (client.connect(matUuid , mqttUser, mqttPassword )) {
+
       Serial.println("connected");
  
     } else {
