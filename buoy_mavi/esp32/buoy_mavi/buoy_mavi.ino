@@ -81,6 +81,9 @@ boolean reconnect() {
 unsigned long lastReceivedRTCM_ms = 0;          //5 RTCM messages take approximately ~300ms to arrive at 115200bps
 const unsigned long maxTimeBeforeHangup_ms = 10000UL; //If we fail to get a complete RTCM frame after 10s, then disconnect from caster
 
+DynamicJsonDocument jsonDoc(256); 
+#define pin_Drotek 3     // ANALOG PIN 3 ( TO TEST )
+
 //bool transmitLocation = true;  change to secrets.h      //By default we will transmit the unit's location via GGA sentence.
 
 WiFiClient ntripClient; // The WiFi connection to the NTRIP server. This is global so pushGGA can see if we are connected.
@@ -326,7 +329,7 @@ void loop()
 
     case push_data_and_wait_for_keypress:
       // If the connection has dropped or timed out, or if the user has pressed a key
-      if ((processConnection() == false) || (keyPressed()))
+      if ((processConnection() == false)) // || (keyPressed()))
       {
         state = close_connection; // Move on
       }
@@ -374,7 +377,44 @@ void loop()
   else{
     Serial.println("WIFI disconnected. reconnect...");
     WiFi.reconnect();
+  }
+
+  //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+  // Incoming serial order ex : {"order":"INSTRUCTION"}
+    /* Incoming serial order ex: {"order":"INSTRUCTION"} */
+  if (Serial.available() > 0) {
+    Serial.print( " - message received : ");
+    String data = Serial.readStringUntil('\n');
+    Serial.println(data);
+    commandManager(data);
+  }   
+  
 }
+
+int commandManager(String message) {
+  DeserializationError error = deserializeJson(jsonDoc, message);
+  if(error) {
+    Serial.println("parseObject() failed");
+  }
+  // {"order":"HeaterOn"}
+  if (jsonDoc["order"] == "drotek_OFF")
+  {
+    Serial.println(" - order drotek_OFF received");
+    //digitalWrite(pin_Drotek,LOW);
+    Serial.println(" - pin_Drotek is LOW");
+    return 1;
+  }
+  else if (jsonDoc["order"] == "drotek_ON")
+  {
+    Serial.println(" - order drotek ON received");
+    digitalWrite(pin_Drotek, HIGH);
+    Serial.println(" - pin_Drotek is HIGH");
+    return 1;
+  }
+  else {
+    Serial.println("Order error");
+    return 0;
+  }
 }
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
