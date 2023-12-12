@@ -1,3 +1,4 @@
+// Source from : https://fr.thesouthshow.com/21996-Interfacing-Photoresistor-With-ESP32-74
 // Testing Deep Sleep whit ESP32
 #define uS_TO_S_FACTOR 1000000
 #define TIME_TO_SLEEP  30

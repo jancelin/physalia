@@ -4,7 +4,7 @@
 
 // DEEP SLEEP CONFIGURATION
 #define uS_TO_S_FACTOR 1000000
-#define TIME_TO_SLEEP  30
+int TIME_TO_SLEEP = 30;
 
 //Your WiFi credentials OASIS
 // const char ssid[] = "WifiRaspi";

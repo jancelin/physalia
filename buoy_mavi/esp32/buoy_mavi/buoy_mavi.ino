@@ -433,15 +433,19 @@ int commandManager(String message) {
     digitalWrite(pin_GSM, HIGH);
     Serial.println(" - pin_GSM is HIGH");
     return 1;
-  }
+  }//   {"order":"deepSleep_ON", "TIME_TO_SLEEP":10}
   else if (jsonDoc["order"] == "deepSleep_ON")
   {
     Serial.println(" - deepSleep ON received");
     Serial.println(" - deepSleep Shutdown GNSS");
     digitalWrite(pin_GSM, HIGH);
-    Serial.println(" - pin_GSM is HIGH");
-    Serial.println(" - deepSleep ON received, sleeping for " + String(TIME_TO_SLEEP) + " sec");
-    
+    delay(200);
+    if ( jsonDoc["TIME_TO_SLEEP"].as<int>() != 0 ) {
+      TIME_TO_SLEEP = jsonDoc["TIME_TO_SLEEP"].as<int>();
+      esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);   
+      Serial.println(" - deepSleep received TIME_TO_SLEEP update to " + String(TIME_TO_SLEEP) + " sec");
+    }
+    Serial.println(" - deepSleep begin for " + String(TIME_TO_SLEEP) + " sec");
     esp_deep_sleep_start();
     return 1;
   }
