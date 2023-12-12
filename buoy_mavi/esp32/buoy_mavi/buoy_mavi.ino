@@ -82,7 +82,8 @@ unsigned long lastReceivedRTCM_ms = 0;          //5 RTCM messages take approxima
 const unsigned long maxTimeBeforeHangup_ms = 10000UL; //If we fail to get a complete RTCM frame after 10s, then disconnect from caster
 
 DynamicJsonDocument jsonDoc(256); 
-#define pin_Drotek 3     // ANALOG PIN 3 ( TO TEST )
+#define pin_GNSS 33     // ANALOG PIN 33 ( Relais 1 )
+#define pin_GSM 32        // ANALOG PIN 33 ( Relais 2 )
 
 //bool transmitLocation = true;  change to secrets.h      //By default we will transmit the unit's location via GGA sentence.
 
@@ -196,6 +197,13 @@ void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
 void setup()
 {
   Serial.begin(115200);
+  
+  Serial.println("Init Relay");
+  
+  pinMode(pin_GNSS,OUTPUT);
+  pinMode(pin_GSM,OUTPUT);
+  digitalWrite(pin_GNSS, LOW);
+  digitalWrite(pin_GSM, LOW);
 
   bool keepTrying = true;
   while (keepTrying)
@@ -227,7 +235,7 @@ void setup()
   delay(500); 
 
   //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-  
+
   Serial.println(F("NTRIP testing"));
   
   Wire.begin(); //Start I2C
@@ -396,19 +404,33 @@ int commandManager(String message) {
   if(error) {
     Serial.println("parseObject() failed");
   }
-  // {"order":"HeaterOn"}
+  // Exemple = {"order":"drotek_OFF"}  
   if (jsonDoc["order"] == "drotek_OFF")
   {
     Serial.println(" - order drotek_OFF received");
-    //digitalWrite(pin_Drotek,LOW);
-    Serial.println(" - pin_Drotek is LOW");
+    digitalWrite(pin_GNSS,HIGH);
+    Serial.println(" - pin_GNSS is HIGH");
     return 1;
-  }
+  } //  {"order":"drotek_ON"}
   else if (jsonDoc["order"] == "drotek_ON")
   {
     Serial.println(" - order drotek ON received");
-    digitalWrite(pin_Drotek, HIGH);
-    Serial.println(" - pin_Drotek is HIGH");
+    digitalWrite(pin_GNSS, LOW);
+    Serial.println(" - pin_GNSS is LOW");
+    return 1;
+  }//   {"order":"gsm_ON"}
+  else if (jsonDoc["order"] == "gsm_ON")
+  {
+    Serial.println(" - order gsm ON received");
+    digitalWrite(pin_GSM, LOW);
+    Serial.println(" - pin_GSM is LOW");
+    return 1;
+  }//   {"order":"gsm_OFF"}
+  else if (jsonDoc["order"] == "gsm_OFF")
+  {
+    Serial.println(" - order gsm OFF received");
+    digitalWrite(pin_GSM, HIGH);
+    Serial.println(" - pin_GSM is HIGH");
     return 1;
   }
   else {
