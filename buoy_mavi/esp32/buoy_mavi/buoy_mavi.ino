@@ -77,13 +77,10 @@ boolean reconnect() {
 }
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 //Global variables
-
 unsigned long lastReceivedRTCM_ms = 0;          //5 RTCM messages take approximately ~300ms to arrive at 115200bps
 const unsigned long maxTimeBeforeHangup_ms = 10000UL; //If we fail to get a complete RTCM frame after 10s, then disconnect from caster
 
 DynamicJsonDocument jsonDoc(256); 
-#define pin_GNSS 33     // ANALOG PIN 33 ( Relais 1 )
-#define pin_GSM 32        // ANALOG PIN 33 ( Relais 2 )
 
 //bool transmitLocation = true;  change to secrets.h      //By default we will transmit the unit's location via GGA sentence.
 
@@ -198,12 +195,16 @@ void setup()
 {
   Serial.begin(115200);
   
-  Serial.println("Init Relay");
+  Serial.println("SETUP -------------- Init Relay");
   
   pinMode(pin_GNSS,OUTPUT);
   pinMode(pin_GSM,OUTPUT);
   digitalWrite(pin_GNSS, LOW);
   digitalWrite(pin_GSM, LOW);
+
+  // Deep sleep 
+  Serial.print("SETUP - Sleep mode configured to : " + String(TIME_TO_SLEEP) + " seconds" );
+  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
 
   bool keepTrying = true;
   while (keepTrying)
@@ -431,6 +432,17 @@ int commandManager(String message) {
     Serial.println(" - order gsm OFF received");
     digitalWrite(pin_GSM, HIGH);
     Serial.println(" - pin_GSM is HIGH");
+    return 1;
+  }
+  else if (jsonDoc["order"] == "deepSleep_ON")
+  {
+    Serial.println(" - deepSleep ON received");
+    Serial.println(" - deepSleep Shutdown GNSS");
+    digitalWrite(pin_GSM, HIGH);
+    Serial.println(" - pin_GSM is HIGH");
+    Serial.println(" - deepSleep ON received, sleeping for " + String(TIME_TO_SLEEP) + " sec");
+    
+    esp_deep_sleep_start();
     return 1;
   }
   else {

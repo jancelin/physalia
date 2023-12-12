@@ -1,3 +1,11 @@
+// HARDWARE CONNECTION
+#define pin_GNSS 33     // ANALOG PIN 33 ( Relais 1 )
+#define pin_GSM 32        // ANALOG PIN 33 ( Relais 2 )
+
+// DEEP SLEEP CONFIGURATION
+#define uS_TO_S_FACTOR 1000000
+#define TIME_TO_SLEEP  30
+
 //Your WiFi credentials OASIS
 // const char ssid[] = "WifiRaspi";
 // const char password[] = "wifiraspi";
