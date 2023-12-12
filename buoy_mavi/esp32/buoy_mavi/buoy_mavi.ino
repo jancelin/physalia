@@ -194,22 +194,29 @@ void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
 void setup()
 {
   Serial.begin(115200);
+  Serial.println("********************************");
+  Serial.println("******** SETUP BEGIN ***********");
+  Serial.println("********************************");
   
-  Serial.println("SETUP -------------- Init Relay");
-  
+  Serial.println("SETUP - Init Relay");
   pinMode(pin_GNSS,OUTPUT);
   pinMode(pin_GSM,OUTPUT);
   digitalWrite(pin_GNSS, LOW);
   digitalWrite(pin_GSM, LOW);
 
   // Deep sleep 
-  Serial.print("SETUP - Sleep mode configured to : " + String(TIME_TO_SLEEP) + " seconds" );
+  //Affiche la source du reveil
+  print_wakeup_reason();
+
+  Serial.println("SETUP - Sleep mode configured to : " + String(TIME_TO_SLEEP) + " seconds" );
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+  // Configuration de WakeUp avec une photorésistance. 
+  esp_sleep_enable_ext0_wakeup(GPIO_NUM_2, HIGH);
 
   bool keepTrying = true;
   while (keepTrying)
   {
-    Serial.print(F("Connecting to local WiFi"));
+    Serial.print(F("SETUP - Connecting to local WiFi"));
 
     unsigned long startTime = millis();
     WiFi.begin(ssid, password);
@@ -433,7 +440,7 @@ int commandManager(String message) {
     digitalWrite(pin_GSM, HIGH);
     Serial.println(" - pin_GSM is HIGH");
     return 1;
-  }//   {"order":"deepSleep_ON", "TIME_TO_SLEEP":10}
+  }//   {"order":"deepSleep_ON", "TIME_TO_SLEEP":60}
   else if (jsonDoc["order"] == "deepSleep_ON")
   {
     Serial.println(" - deepSleep ON received");
@@ -453,6 +460,32 @@ int commandManager(String message) {
     Serial.println("Order error");
     return 0;
   }
+}
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// Permet d'afficher la raison du réveil du DeepSleep
+void print_wakeup_reason(){
+   Serial.println("-----------------")
+   Serial.println(" - WAKEUP REASON ");
+   esp_sleep_wakeup_cause_t source_reveil;
+   source_reveil = esp_sleep_get_wakeup_cause();
+
+   switch(source_reveil){
+      case ESP_SLEEP_WAKEUP_EXT0 : 
+        Serial.println("Réveil causé par un signal externe avec RTC_IO"); 
+        break;
+      case ESP_SLEEP_WAKEUP_EXT1 : 
+        Serial.println("Réveil causé par un signal externe avec RTC_CNTL"); 
+        break;
+      case ESP_SLEEP_WAKEUP_TIMER : 
+        Serial.println("Réveil causé par un timer"); 
+        break;
+      case ESP_SLEEP_WAKEUP_TOUCHPAD : 
+        Serial.println("Réveil causé par un touchpad"); 
+        break;
+      default : 
+        Serial.printf("Réveil pas causé par le Deep Sleep: %d\n",source_reveil); 
+        break;
+   }
 }
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=

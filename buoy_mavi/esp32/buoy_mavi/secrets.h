@@ -1,6 +1,7 @@
 // HARDWARE CONNECTION
 #define pin_GNSS 33     // ANALOG PIN 33 ( Relais 1 )
 #define pin_GSM 32        // ANALOG PIN 33 ( Relais 2 )
+#define LDR 2  // composante photoresistor sur la pin GPI02
 
 // DEEP SLEEP CONFIGURATION
 #define uS_TO_S_FACTOR 1000000
