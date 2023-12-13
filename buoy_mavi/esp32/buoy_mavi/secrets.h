@@ -7,11 +7,17 @@
 #define uS_TO_S_FACTOR 1000000
 int TIME_TO_SLEEP = 30;
 
+int RTK_ACQUISITION_PERIOD = 60; // Temps pendant lequel on doit capter de la donnée en RTK ( secondes )
+int RTK_MAX_RESEARCH = 120; // Temps max pendant lequel le dispositif recherche du RTK ( seconds )
+RTC_DATA_ATTR int lastPeriodRecord = 0;
 //Your WiFi credentials OASIS
 // const char ssid[] = "WifiRaspi";
 // const char password[] = "wifiraspi";
-const char ssid[] = "ici";
-const char password[] = "12345678";
+// const char ssid[] = "ici";
+// const char password[] = "12345678";
+const char ssid[] = "BibiRom_AP";
+const char password[] = "tamata50";
+
 
 //MQTT connexion OASIS
 // const char* mqttServer = "172.24.1.1";

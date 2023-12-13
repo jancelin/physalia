@@ -62,12 +62,19 @@ WiFiClient espClient;
 PubSubClient client(espClient); //MQTT
 long lastReconnectAttempt = 0; 
 
+/* CONFIG PERIOD DE CAPATAION EN RTK*/
+bool state_fix = false;
+long nb_millisecond_recorded = 0;
+long lastState = 0;
+long TIME_FIX_TO_RECORD = 30000; // 30sec
+
 void callback(char* topic, byte* payload, unsigned int length) {
   // handle message arrived
 }
 
 boolean reconnect() {
   if (client.connect(mqtttopic)) {
+    Serial.println("reconnect to MQTT....");
     // Once connected, publish an announcement...
     client.publish(mqtttopic, matUuid);
     // ... and resubscribe
@@ -118,7 +125,7 @@ void pushGPGGA(NMEA_GGA_data_t *nmeaData)
 //        |                 |              |
 void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
 {
-
+  long now = millis();
   // allocate the memory for the document
   StaticJsonDocument<256> doc;
   // create an object
@@ -179,14 +186,44 @@ void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
   doc["numsv"] = numSV;
 
   serializeJson(doc, Serial);
-  Serial.println();
+  //Serial.println();
 
-  //Send position to MQTT broker
-  String msg;
-  String output = "JSON = ";
-  serializeJson(doc, msg);
-  client.publish(mqtttopic, msg.c_str());
-  Serial.println("Message send");
+  // DeepSleep if we sent during a period fixed RTK datas
+  // Every timeInterval, sending JSON data to Mqtt. 
+  // TEST UNIQUEMENT
+  // SIMULATION - On récupère la valeur du state_fix... aprés 5sec
+   if ( now > 15000 ) {
+      state_fix = true;
+   }
+   // SIMULATION - Aprés 7 seconde on perd le signal pendant 7 secondes
+   if ( now > 20000 && now < 35000) {
+      Serial.println("Test de perte du Fix aprés 20 secondes ET jusqu'à 35 sec. ");
+      state_fix = false;
+   }
+   
+   if (!state_fix) {
+      nb_millisecond_recorded = 0;
+      lastState = 0;
+   }
+   else { // on est en RTK on envoit la data ! 
+      //Send position to MQTT broker
+      Serial.println("ON EST EN RTK ... ");
+      String msg;
+      serializeJson(doc, msg);
+      client.publish(mqtttopic, msg.c_str());
+      Serial.println("Message send");
+  
+      if ( lastState == 0 ) {
+        Serial.println("lastState == 0 Valued to " + String(now) );
+        lastState = now;
+      }
+      if ( lastState !=0 && now - lastState > TIME_FIX_TO_RECORD ){
+        Serial.println("Record quality FIX during period is done, we can sleep at " + String(now));
+        Serial.println("ESP32 will wake up in " + String(TIME_TO_SLEEP) + " seconds");
+        esp_deep_sleep_start();
+      }  
+
+   }
 }
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -297,15 +334,16 @@ void setup()
   }
 
   //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
   while (Serial.available()) // Empty the serial buffer
     Serial.read();
 }
 
-//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
+/*****************************************/
+/* ************ LOOP *********************/
+/*****************************************/
 void loop()
 {
+  long now = millis();
   myGNSS.checkUblox(); // Check for the arrival of new GNSS data and process it.
   myGNSS.checkCallbacks(); // Check if any GNSS callbacks are waiting to be processed.
 
@@ -404,7 +442,6 @@ void loop()
     Serial.println(data);
     commandManager(data);
   }   
-  
 }
 
 int commandManager(String message) {
@@ -464,7 +501,7 @@ int commandManager(String message) {
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Permet d'afficher la raison du réveil du DeepSleep
 void print_wakeup_reason(){
-   Serial.println("-----------------")
+   Serial.println("-----------------");
    Serial.println(" - WAKEUP REASON ");
    esp_sleep_wakeup_cause_t source_reveil;
    source_reveil = esp_sleep_get_wakeup_cause();
