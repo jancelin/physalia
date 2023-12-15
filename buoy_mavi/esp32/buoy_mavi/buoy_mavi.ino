@@ -66,7 +66,6 @@ long lastReconnectAttempt = 0;
 bool state_fix = false;
 long nb_millisecond_recorded = 0;
 long lastState = 0;
-long TIME_FIX_TO_RECORD = 30000; // 30sec
 
 void callback(char* topic, byte* payload, unsigned int length) {
   // handle message arrived
@@ -191,11 +190,11 @@ void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
   // DeepSleep if we sent during a period fixed RTK datas
   // Every timeInterval, sending JSON data to Mqtt. 
   // TEST UNIQUEMENT
-  // SIMULATION - On récupère la valeur du state_fix... aprés 5sec
+  // SIMULATION - On récupère la valeur du state_fix... aprés 15sec
    if ( now > 15000 ) {
       state_fix = true;
    }
-   // SIMULATION - Aprés 7 seconde on perd le signal pendant 7 secondes
+   // SIMULATION - Aprés 20 seconde on perd le signal pendant 15 secondes
    if ( now > 20000 && now < 35000) {
       Serial.println("Test de perte du Fix aprés 20 secondes ET jusqu'à 35 sec. ");
       state_fix = false;
@@ -204,8 +203,12 @@ void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
    if (!state_fix) {
       nb_millisecond_recorded = 0;
       lastState = 0;
+      // Envoi de la trame quand meme ? 
+      serializeJson(doc, msg);
+      client.publish(mqtttopic, msg.c_str());
+      Serial.println("Message send with no FIX RTK... It's just to say : I'am Alive !!! ");
    }
-   else { // on est en RTK on envoit la data ! 
+   else { // on est en RTK on envoie la data ! 
       //Send position to MQTT broker
       Serial.println("ON EST EN RTK ... ");
       String msg;
@@ -217,9 +220,9 @@ void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
         Serial.println("lastState == 0 Valued to " + String(now) );
         lastState = now;
       }
-      if ( lastState !=0 && now - lastState > TIME_FIX_TO_RECORD ){
+      if ( lastState !=0 && now - lastState > RTK_ACQUISITION_PERIOD ){
         Serial.println("Record quality FIX during period is done, we can sleep at " + String(now));
-        Serial.println("ESP32 will wake up in " + String(TIME_TO_SLEEP) + " seconds");
+        //Serial.println("ESP32 will wake up in " + String(TIME_TO_SLEEP) + " seconds");
         esp_deep_sleep_start();
       }  
 
@@ -273,7 +276,7 @@ void setup()
     }
   }
 
-  Serial.println(F("WiFi connected with IP: "));
+  Serial.println(F("SETUP - WiFi connected with IP: "));
   Serial.println(WiFi.localIP());
   WiFi.setAutoReconnect(true);
   WiFi.persistent(true);
@@ -281,16 +284,16 @@ void setup()
 
   //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-  Serial.println(F("NTRIP testing"));
+  Serial.println(F("SETUP - NTRIP testing"));
   
   Wire.begin(); //Start I2C
 
   while (myGNSS.begin() == false) //Connect to the Ublox module using Wire port
   {
-    Serial.println(F("u-blox GPS not detected at default I2C address. Please check wiring."));
+    Serial.println(F("SETUP - u-blox GPS not detected at default I2C address. Please check wiring."));
     delay(2000);
   }
-  Serial.println(F("u-blox module connected"));
+  Serial.println(F("SETUP - u-blox module connected"));
 
   myGNSS.setI2COutput(COM_TYPE_UBX | COM_TYPE_NMEA);                                //Set the I2C port to output both NMEA and UBX messages
   myGNSS.setPortInput(COM_PORT_I2C, COM_TYPE_UBX | COM_TYPE_NMEA | COM_TYPE_RTCM3); //Be sure RTCM3 input is enabled. UBX + RTCM3 is not a valid state.
@@ -316,17 +319,17 @@ void setup()
   client.setCallback(callback);
  
   while (!client.connected()) {
-    Serial.println("Connecting to MQTT...\n");
+    Serial.println("SETUP - Connecting to MQTT...\n");
  
     //if (client.connect("ESP32Client", mqttUser, mqttPassword )) {
     //add a uuid for each rover https://github.com/knolleary/pubsubclient/issues/372#issuecomment-352086415
     if (client.connect(matUuid , mqttUser, mqttPassword )) {
 
-      Serial.println("connected");
+      Serial.println("SETUP - connected");
  
     } else {
  
-      Serial.print("failed with state ");
+      Serial.print("SETUP - failed with state ");
       Serial.print(client.state());
       delay(1500);
       lastReconnectAttempt = 0;
@@ -435,7 +438,6 @@ void loop()
 
   //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
   // Incoming serial order ex : {"order":"INSTRUCTION"}
-    /* Incoming serial order ex: {"order":"INSTRUCTION"} */
   if (Serial.available() > 0) {
     Serial.print( " - message received : ");
     String data = Serial.readStringUntil('\n');
@@ -526,8 +528,7 @@ void print_wakeup_reason(){
 }
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
-//Connect to NTRIP Caster. Return true is connection is successful.
+//Connect to NTRIP Caster. Return true if connection is successful.
 bool beginClient()
 {
   Serial.print(F("Opening socket to "));
