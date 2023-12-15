@@ -191,40 +191,47 @@ void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
   // Every timeInterval, sending JSON data to Mqtt. 
   // TEST UNIQUEMENT
   // SIMULATION - On récupère la valeur du state_fix... aprés 15sec
-   if ( now > 15000 ) {
-      state_fix = true;
-   }
-   // SIMULATION - Aprés 20 seconde on perd le signal pendant 15 secondes
-   if ( now > 20000 && now < 35000) {
-      Serial.println("Test de perte du Fix aprés 20 secondes ET jusqu'à 35 sec. ");
-      state_fix = false;
-   }
+  //  if ( now > 15000 ) {
+  //     state_fix = true;
+  //  }
+  //  // SIMULATION - Aprés 20 seconde on perd le signal pendant 15 secondes
+  //  if ( now > 20000 && now < 35000) {
+  //     Serial.println("Test de perte du Fix aprés 20 secondes ET jusqu'à 35 sec. ");
+  //     state_fix = false;
+  //  }
    
-   if (!state_fix) {
-      nb_millisecond_recorded = 0;
-      lastState = 0;
-      // Envoi de la trame quand meme ? 
-      serializeJson(doc, msg);
-      client.publish(mqtttopic, msg.c_str());
-      Serial.println("Message send with no FIX RTK... It's just to say : I'am Alive !!! ");
-   }
-   else { // on est en RTK on envoie la data ! 
-      //Send position to MQTT broker
-      Serial.println("ON EST EN RTK ... ");
-      String msg;
-      serializeJson(doc, msg);
-      client.publish(mqtttopic, msg.c_str());
-      Serial.println("Message send");
-  
-      if ( lastState == 0 ) {
-        Serial.println("lastState == 0 Valued to " + String(now) );
-        lastState = now;
-      }
-      if ( lastState !=0 && now - lastState > RTK_ACQUISITION_PERIOD ){
-        Serial.println("Record quality FIX during period is done, we can sleep at " + String(now));
-        //Serial.println("ESP32 will wake up in " + String(TIME_TO_SLEEP) + " seconds");
-        esp_deep_sleep_start();
-      }  
+  if ( carrSoln == 2 ) 
+    state_fix = true;
+  else
+    state_fix = false;
+
+  String msg;
+  if (!state_fix) {
+    nb_millisecond_recorded = 0;
+    lastState = 0;
+    // Envoi de la trame quand meme ? 
+    serializeJson(doc, msg);
+    client.publish(mqtttopic, msg.c_str());
+    Serial.println("");
+    Serial.println("Message send with no FIX RTK... It's just to say : I'am Alive !!! ");
+  }
+  else { // on est en RTK on envoie la data ! 
+    //Send position to MQTT broker
+    serializeJson(doc, msg);
+    client.publish(mqtttopic, msg.c_str());
+    Serial.println("");
+    Serial.println("Message sent");
+    Serial.println("ON EST EN RTK depuis ... " + String(now - lastState));
+
+    if ( lastState == 0 ) {
+      Serial.println("lastState == 0 Valued to " + String(now) );
+      lastState = now;
+    }
+    if ( lastState !=0 && now - lastState > RTK_ACQUISITION_PERIOD*1000 ){
+      Serial.println("Record quality FIX during period is done, we can sleep at " + String(now) + " during " + String(TIME_TO_SLEEP) + " seconds");
+      // Serial.println("ESP32 will wake up in " + String(TIME_TO_SLEEP) + " seconds");
+      esp_deep_sleep_start();
+    }  
 
    }
 }

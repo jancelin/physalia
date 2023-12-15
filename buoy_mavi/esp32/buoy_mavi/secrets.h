@@ -11,12 +11,11 @@ int RTK_ACQUISITION_PERIOD = 60; // Temps pendant lequel on doit capter de la do
 int RTK_MAX_RESEARCH = 120; // Temps max pendant lequel le dispositif recherche du RTK ( seconds )
 RTC_DATA_ATTR int lastPeriodRecord = 0;
 //Your WiFi credentials OASIS
-// const char ssid[] = "WifiRaspi";
-// const char password[] = "wifiraspi";
+const char ssid[] = "WifiRaspi";
+const char password[] = "wifiraspi";
+
 // const char ssid[] = "ici";
 // const char password[] = "12345678";
-const char ssid[] = "BibiRom_AP";
-const char password[] = "tamata50";
 
 
 //MQTT connexion OASIS
@@ -31,7 +30,7 @@ const char* mqttServer = "mavi-mqtt.centipede.fr";
 const int mqttPort = 8090;
 const char* mqttUser = "";
 const char* mqttPassword = "";
-const char* mqtttopic = "TEST_BUOY/ROMAIN";
+const char* mqtttopic = "buoy/mavi";
 
 //MQTT connexion
 // const char* mqttServer = "mavi-mqtt.centipede.fr";
@@ -41,14 +40,14 @@ const char* mqtttopic = "TEST_BUOY/ROMAIN";
 //const char* mqtttopic = "buoy/mavi";
 
 //material uuid
-const char matUuid[] = "'oasis_romain";
+const char matUuid[] = "'TEST_LOW_ENERGY";
 
 //Centipede works well and is free
 const char casterHost[] = "caster.centipede.fr";
 const uint16_t casterPort = 2101;
 const char casterUser[] = "esp32";
 const char casterUserPW[] = "centipede";
-const char mountPoint[] = "SLP"; //The mount point you want to get data from
+const char mountPoint[] = "CT"; //The mount point you want to get data from
 
 //Send gga to caster
 const bool transmitLocation = false;
