@@ -38,10 +38,15 @@ NAV-PVT :http://docs.ros.org/en/noetic/api/ublox_msgs/html/msg/NavPVT.html
 mqtt client: https://techtutorialsx.com/2017/04/24/esp32-publishing-messages-to-mqtt-topic/
 auto reconnect wifi: http://community.heltec.cn/t/solved-wifi-reconnect/1396/3
 */
-
+#include <Arduino.h>
 #include <WiFi.h>
 #include "secrets.h"
 
+/* I2C device found at address 0x23  ! */
+#include "LuxSensor.h" // https://www.gotronic.fr/art-capteur-de-lumiere-etanche-sen0562-37146.htm
+LuxSensor Lux;
+
+/* I2C device found at address 0x42  ! */
 #include <SparkFun_u-blox_GNSS_Arduino_Library.h> //http://librarymanager/All#SparkFun_u-blox_GNSS
 SFE_UBLOX_GNSS myGNSS;
 
@@ -62,12 +67,18 @@ WiFiClient espClient;
 PubSubClient client(espClient); //MQTT
 long lastReconnectAttempt = 0; 
 
+/* CONFIG PERIOD DE CAPATAION EN RTK*/
+bool state_fix = false;
+long nb_millisecond_recorded = 0;
+long lastState = 0;
+
 void callback(char* topic, byte* payload, unsigned int length) {
   // handle message arrived
 }
 
 boolean reconnect() {
   if (client.connect(mqtttopic)) {
+    Serial.println("reconnect to MQTT....");
     // Once connected, publish an announcement...
     client.publish(mqtttopic, matUuid);
     // ... and resubscribe
@@ -77,9 +88,10 @@ boolean reconnect() {
 }
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 //Global variables
-
 unsigned long lastReceivedRTCM_ms = 0;          //5 RTCM messages take approximately ~300ms to arrive at 115200bps
 const unsigned long maxTimeBeforeHangup_ms = 10000UL; //If we fail to get a complete RTCM frame after 10s, then disconnect from caster
+
+DynamicJsonDocument jsonDoc(256); 
 
 //bool transmitLocation = true;  change to secrets.h      //By default we will transmit the unit's location via GGA sentence.
 
@@ -117,7 +129,9 @@ void pushGPGGA(NMEA_GGA_data_t *nmeaData)
 //        |                 |              |
 void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
 {
+  Lux.setup();
 
+  long now = millis();
   // allocate the memory for the document
   StaticJsonDocument<256> doc;
   // create an object
@@ -177,15 +191,58 @@ void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
   uint8_t numSV = ubxDataStruct->numSV; // Print tle number of SVs used in nav solution
   doc["numsv"] = numSV;
 
-  serializeJson(doc, Serial);
-  Serial.println();
+  doc["LUX"] = Lux.getValue();
 
-  //Send position to MQTT broker
+  serializeJson(doc, Serial);
+  //Serial.println();
+
+  // DeepSleep if we sent during a period fixed RTK datas
+  // Every timeInterval, sending JSON data to Mqtt. 
+  // TEST UNIQUEMENT
+  // SIMULATION - On récupère la valeur du state_fix... aprés 15sec
+  //  if ( now > 15000 ) {
+  //     state_fix = true;
+  //  }
+  //  // SIMULATION - Aprés 20 seconde on perd le signal pendant 15 secondes
+  //  if ( now > 20000 && now < 35000) {
+  //     Serial.println("Test de perte du Fix aprés 20 secondes ET jusqu'à 35 sec. ");
+  //     state_fix = false;
+  //  }
+   
+  if ( carrSoln == 2 ) 
+    state_fix = true;
+  else
+    state_fix = false;
+
   String msg;
-  String output = "JSON = ";
-  serializeJson(doc, msg);
-  client.publish(mqtttopic, msg.c_str());
-  Serial.println("Message send");
+  if (!state_fix) {
+    nb_millisecond_recorded = 0;
+    lastState = 0;
+    // Envoi de la trame quand meme ? 
+    serializeJson(doc, msg);
+    client.publish(mqtttopic, msg.c_str());
+    Serial.println("");
+    Serial.println("Message send with no FIX RTK... It's just to say : I'am Alive !!! ");
+  }
+  else { // on est en RTK on envoie la data ! 
+    //Send position to MQTT broker
+    serializeJson(doc, msg);
+    client.publish(mqtttopic, msg.c_str());
+    Serial.println("");
+    Serial.println("Message sent");
+    Serial.println("ON EST EN RTK depuis ... " + String(now - lastState));
+
+    if ( lastState == 0 ) {
+      Serial.println("lastState == 0 Valued to " + String(now) );
+      lastState = now;
+    }
+    if ( lastState !=0 && now - lastState > RTK_ACQUISITION_PERIOD*1000 ){
+      Serial.println("Record quality FIX during period is done, we can sleep at " + String(now) + " during " + String(TIME_TO_SLEEP) + " seconds");
+      // Serial.println("ESP32 will wake up in " + String(TIME_TO_SLEEP) + " seconds");
+      esp_deep_sleep_start();
+    }  
+
+   }
 }
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -193,12 +250,33 @@ void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
 void setup()
 {
   Serial.begin(115200);
+  Serial.println("********************************");
+  Serial.println("******** SETUP BEGIN ***********");
+  Serial.println("********************************");
+  
+  Serial.println("SETUP - Init Relay");
+  pinMode(pin_GNSS,OUTPUT);
+  pinMode(pin_GSM,OUTPUT);
+  digitalWrite(pin_GNSS, LOW);
+  digitalWrite(pin_GSM, LOW);
+
+  Serial.println("SETUP - Init Lux Sensor");
+  Lux.setup();
+
+  // Deep sleep 
+  //Affiche la source du reveil
+  print_wakeup_reason();
+
+  Serial.println("SETUP - Sleep mode configured to : " + String(TIME_TO_SLEEP) + " seconds" );
+  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+  // Configuration de WakeUp avec une photorésistance. 
+  esp_sleep_enable_ext0_wakeup(GPIO_NUM_2, HIGH);
 
   bool keepTrying = true;
   while (keepTrying)
   {
-    Serial.print(F("Connecting to local WiFi"));
-
+    Serial.print(F("SETUP - Connecting to local WiFi"));
+    Serial.println(" SSID = " + String(ssid) );
     unsigned long startTime = millis();
     WiFi.begin(ssid, password);
     while ((WiFi.status() != WL_CONNECTED) && (millis() < (startTime + 10000))) // Timeout after 10 seconds
@@ -217,24 +295,24 @@ void setup()
     }
   }
 
-  Serial.println(F("WiFi connected with IP: "));
+  Serial.println(F("SETUP - WiFi connected with IP: "));
   Serial.println(WiFi.localIP());
   WiFi.setAutoReconnect(true);
   WiFi.persistent(true);
   delay(500); 
 
   //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-  
-  Serial.println(F("NTRIP testing"));
+
+  Serial.println(F("SETUP - NTRIP testing"));
   
   Wire.begin(); //Start I2C
 
   while (myGNSS.begin() == false) //Connect to the Ublox module using Wire port
   {
-    Serial.println(F("u-blox GPS not detected at default I2C address. Please check wiring."));
+    Serial.println(F("SETUP - u-blox GPS not detected at default I2C address. Please check wiring."));
     delay(2000);
   }
-  Serial.println(F("u-blox module connected"));
+  Serial.println(F("SETUP - u-blox module connected"));
 
   myGNSS.setI2COutput(COM_TYPE_UBX | COM_TYPE_NMEA);                                //Set the I2C port to output both NMEA and UBX messages
   myGNSS.setPortInput(COM_PORT_I2C, COM_TYPE_UBX | COM_TYPE_NMEA | COM_TYPE_RTCM3); //Be sure RTCM3 input is enabled. UBX + RTCM3 is not a valid state.
@@ -260,17 +338,17 @@ void setup()
   client.setCallback(callback);
  
   while (!client.connected()) {
-    Serial.println("Connecting to MQTT...\n");
+    Serial.println("SETUP - Connecting to MQTT...\n");
  
     //if (client.connect("ESP32Client", mqttUser, mqttPassword )) {
     //add a uuid for each rover https://github.com/knolleary/pubsubclient/issues/372#issuecomment-352086415
     if (client.connect(matUuid , mqttUser, mqttPassword )) {
 
-      Serial.println("connected");
+      Serial.println("SETUP - connected");
  
     } else {
  
-      Serial.print("failed with state ");
+      Serial.print("SETUP - failed with state ");
       Serial.print(client.state());
       delay(1500);
       lastReconnectAttempt = 0;
@@ -278,17 +356,20 @@ void setup()
   }
 
   //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
   while (Serial.available()) // Empty the serial buffer
     Serial.read();
 }
 
-//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
+/*****************************************/
+/* ************ LOOP *********************/
+/*****************************************/
 void loop()
 {
+  long now = millis();
   myGNSS.checkUblox(); // Check for the arrival of new GNSS data and process it.
   myGNSS.checkCallbacks(); // Check if any GNSS callbacks are waiting to be processed.
+
+  Lux.getValue();
 
   enum states // Use a 'state machine' to open and close the connection
   {
@@ -326,7 +407,7 @@ void loop()
 
     case push_data_and_wait_for_keypress:
       // If the connection has dropped or timed out, or if the user has pressed a key
-      if ((processConnection() == false) || (keyPressed()))
+      if ((processConnection() == false)) // || (keyPressed()))
       {
         state = close_connection; // Move on
       }
@@ -374,12 +455,101 @@ void loop()
   else{
     Serial.println("WIFI disconnected. reconnect...");
     WiFi.reconnect();
+  }
+
+  //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+  // Incoming serial order ex : {"order":"INSTRUCTION"}
+  if (Serial.available() > 0) {
+    Serial.print( " - message received : ");
+    String data = Serial.readStringUntil('\n');
+    Serial.println(data);
+    commandManager(data);
+  }   
 }
+
+int commandManager(String message) {
+  DeserializationError error = deserializeJson(jsonDoc, message);
+  if(error) {
+    Serial.println("parseObject() failed");
+  }
+  // Exemple = {"order":"drotek_OFF"}  
+  if (jsonDoc["order"] == "drotek_OFF")
+  {
+    Serial.println(" - order drotek_OFF received");
+    digitalWrite(pin_GNSS,HIGH);
+    Serial.println(" - pin_GNSS is HIGH");
+    return 1;
+  } //  {"order":"drotek_ON"}
+  else if (jsonDoc["order"] == "drotek_ON")
+  {
+    Serial.println(" - order drotek ON received");
+    digitalWrite(pin_GNSS, LOW);
+    Serial.println(" - pin_GNSS is LOW");
+    return 1;
+  }//   {"order":"gsm_ON"}
+  else if (jsonDoc["order"] == "gsm_ON")
+  {
+    Serial.println(" - order gsm ON received");
+    digitalWrite(pin_GSM, LOW);
+    Serial.println(" - pin_GSM is LOW");
+    return 1;
+  }//   {"order":"gsm_OFF"}
+  else if (jsonDoc["order"] == "gsm_OFF")
+  {
+    Serial.println(" - order gsm OFF received");
+    digitalWrite(pin_GSM, HIGH);
+    Serial.println(" - pin_GSM is HIGH");
+    return 1;
+  }//   {"order":"deepSleep_ON", "TIME_TO_SLEEP":60}
+  else if (jsonDoc["order"] == "deepSleep_ON")
+  {
+    Serial.println(" - deepSleep ON received");
+    Serial.println(" - deepSleep Shutdown GNSS");
+    digitalWrite(pin_GSM, HIGH);
+    delay(200);
+    if ( jsonDoc["TIME_TO_SLEEP"].as<int>() != 0 ) {
+      TIME_TO_SLEEP = jsonDoc["TIME_TO_SLEEP"].as<int>();
+      esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);   
+      Serial.println(" - deepSleep received TIME_TO_SLEEP update to " + String(TIME_TO_SLEEP) + " sec");
+    }
+    Serial.println(" - deepSleep begin for " + String(TIME_TO_SLEEP) + " sec");
+    esp_deep_sleep_start();
+    return 1;
+  }
+  else {
+    Serial.println("Order error");
+    return 0;
+  }
+}
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// Permet d'afficher la raison du réveil du DeepSleep
+void print_wakeup_reason(){
+   Serial.println("-----------------");
+   Serial.println(" - WAKEUP REASON ");
+   esp_sleep_wakeup_cause_t source_reveil;
+   source_reveil = esp_sleep_get_wakeup_cause();
+
+   switch(source_reveil){
+      case ESP_SLEEP_WAKEUP_EXT0 : 
+        Serial.println("Réveil causé par un signal externe avec RTC_IO"); 
+        break;
+      case ESP_SLEEP_WAKEUP_EXT1 : 
+        Serial.println("Réveil causé par un signal externe avec RTC_CNTL"); 
+        break;
+      case ESP_SLEEP_WAKEUP_TIMER : 
+        Serial.println("Réveil causé par un timer"); 
+        break;
+      case ESP_SLEEP_WAKEUP_TOUCHPAD : 
+        Serial.println("Réveil causé par un touchpad"); 
+        break;
+      default : 
+        Serial.printf("Réveil pas causé par le Deep Sleep: %d\n",source_reveil); 
+        break;
+   }
 }
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
-//Connect to NTRIP Caster. Return true is connection is successful.
+//Connect to NTRIP Caster. Return true if connection is successful.
 bool beginClient()
 {
   Serial.print(F("Opening socket to "));
