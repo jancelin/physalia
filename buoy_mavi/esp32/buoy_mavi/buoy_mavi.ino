@@ -38,10 +38,15 @@ NAV-PVT :http://docs.ros.org/en/noetic/api/ublox_msgs/html/msg/NavPVT.html
 mqtt client: https://techtutorialsx.com/2017/04/24/esp32-publishing-messages-to-mqtt-topic/
 auto reconnect wifi: http://community.heltec.cn/t/solved-wifi-reconnect/1396/3
 */
-
+#include <Arduino.h>
 #include <WiFi.h>
 #include "secrets.h"
 
+/* I2C device found at address 0x23  ! */
+#include "LuxSensor.h" // https://www.gotronic.fr/art-capteur-de-lumiere-etanche-sen0562-37146.htm
+LuxSensor Lux;
+
+/* I2C device found at address 0x42  ! */
 #include <SparkFun_u-blox_GNSS_Arduino_Library.h> //http://librarymanager/All#SparkFun_u-blox_GNSS
 SFE_UBLOX_GNSS myGNSS;
 
@@ -124,6 +129,8 @@ void pushGPGGA(NMEA_GGA_data_t *nmeaData)
 //        |                 |              |
 void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
 {
+  Lux.setup();
+
   long now = millis();
   // allocate the memory for the document
   StaticJsonDocument<256> doc;
@@ -183,6 +190,8 @@ void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
 
   uint8_t numSV = ubxDataStruct->numSV; // Print tle number of SVs used in nav solution
   doc["numsv"] = numSV;
+
+  doc["LUX"] = Lux.getValue();
 
   serializeJson(doc, Serial);
   //Serial.println();
@@ -251,6 +260,9 @@ void setup()
   digitalWrite(pin_GNSS, LOW);
   digitalWrite(pin_GSM, LOW);
 
+  Serial.println("SETUP - Init Lux Sensor");
+  Lux.setup();
+
   // Deep sleep 
   //Affiche la source du reveil
   print_wakeup_reason();
@@ -264,7 +276,7 @@ void setup()
   while (keepTrying)
   {
     Serial.print(F("SETUP - Connecting to local WiFi"));
-
+    Serial.println(" SSID = " + String(ssid) );
     unsigned long startTime = millis();
     WiFi.begin(ssid, password);
     while ((WiFi.status() != WL_CONNECTED) && (millis() < (startTime + 10000))) // Timeout after 10 seconds
@@ -356,6 +368,8 @@ void loop()
   long now = millis();
   myGNSS.checkUblox(); // Check for the arrival of new GNSS data and process it.
   myGNSS.checkCallbacks(); // Check if any GNSS callbacks are waiting to be processed.
+
+  Lux.getValue();
 
   enum states // Use a 'state machine' to open and close the connection
   {
