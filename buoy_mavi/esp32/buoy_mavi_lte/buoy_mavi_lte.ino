@@ -265,22 +265,6 @@ void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
   mqtt.publish(mqtttopic, msg.c_str());
   Serial.println("Message send");
 
-  // DeepSleep configuration
-  if ( lastState == 0 ) {
-      Serial.println("lastState == 0 Valued to " + String(now) );
-      lastState = now;
-  }
-
-  if ( lastState !=0 && now - lastState > RTK_ACQUISITION_PERIOD*1000 ){
-      Serial.println("Record during period is done, we can sleep at " + String(now) + " during " + String(TIME_TO_SLEEP) + " seconds");
-      Serial.println("ESP32 will wake up in " + String(TIME_TO_SLEEP) + " seconds");
-      modem_off();
-      Serial.println("Modem Off; waiting 2 sec");
-      delay(2000);
-      Serial.println("Good night ! ");
-      esp_deep_sleep_start();
-  }  
-
 }
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -470,7 +454,7 @@ void setup()
 
 void loop()
 {
-
+  long now = millis();
 
   myGNSS.checkUblox(); // Check for the arrival of new GNSS data and process it.
   myGNSS.checkCallbacks(); // Check if any GNSS callbacks are waiting to be processed.
@@ -589,6 +573,23 @@ void loop()
 #endif
   }
 //------------------------------GSM
+
+//DeepSleep configuration
+  if ( lastState == 0 ) {
+      Serial.println("lastState == 0 Valued to " + String(now) );
+      lastState = now;
+  }
+
+  if ( lastState !=0 && now - lastState > RTK_ACQUISITION_PERIOD*1000 ){
+      Serial.println("Record during period is done, we can sleep at " + String(now) + " during " + String(TIME_TO_SLEEP) + " seconds");
+      Serial.println("ESP32 will wake up in " + String(TIME_TO_SLEEP) + " seconds");
+      modem_off();
+      Serial.println("Modem Off; waiting 2 sec");
+      delay(2000);
+      Serial.println("Good night ! ");
+      esp_deep_sleep_start();
+  }  
+  
 }
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
