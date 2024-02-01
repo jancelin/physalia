@@ -1,4 +1,4 @@
-#define pin_Relay 33
+#define pin_Relay 32
 
 void setup(){
   Serial.begin(115200);
@@ -9,10 +9,10 @@ void setup(){
 void loop(){
   Serial.println("pin relay is LOW !");
   digitalWrite(pin_Relay, LOW);
-  delay(1000);
+  delay(5000);
   Serial.println("pin relay is HIGH !");
   digitalWrite(pin_Relay, HIGH);
-  delay(1000);
+  delay(10000);
 
 }
   
