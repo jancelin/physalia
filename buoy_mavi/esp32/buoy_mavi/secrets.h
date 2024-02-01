@@ -18,20 +18,19 @@ const char password[] = "wifiraspi";
 // const char ssid[] = "ici";
 // const char password[] = "12345678";
 
-
 //MQTT connexion OASIS
-// const char* mqttServer = "172.24.1.1";
-// const int mqttPort = 1883;
-// const char* mqttUser = "";
-// const char* mqttPassword = "";
-// const char* mqtttopic = "buoy/mavi";
-
-//MQTT St Medard
-const char* mqttServer = "mavi-mqtt.centipede.fr";
-const int mqttPort = 8090;
+const char* mqttServer = "172.24.1.1";
+const int mqttPort = 1883;
 const char* mqttUser = "";
 const char* mqttPassword = "";
 const char* mqtttopic = "buoy/mavi";
+
+//MQTT St Medard
+//const char* mqttServer = "mavi-mqtt.centipede.fr";
+//const int mqttPort = 8090;
+//const char* mqttUser = "";
+//const char* mqttPassword = "";
+//const char* mqtttopic = "buoy/mavi";
 
 //MQTT connexion
 // const char* mqttServer = "mavi-mqtt.centipede.fr";
