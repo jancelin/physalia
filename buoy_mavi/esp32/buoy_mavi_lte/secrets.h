@@ -3,8 +3,8 @@
 //const char password[] = "12345678";
 
 //MQTT connexion
-const char* mqttServer = "mqtt.server.bla";
-const int mqttPort = 1883;
+const char* mqttServer = "mavi-mqtt.centipede.fr";
+const int mqttPort = 8090;
 const char* mqttUser = "";
 const char* mqttPassword = "";
 const char* mqtttopic = "test/mavi";
