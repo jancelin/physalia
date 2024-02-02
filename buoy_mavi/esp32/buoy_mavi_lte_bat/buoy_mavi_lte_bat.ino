@@ -382,14 +382,16 @@ void setup()
     //return;
   }
 
-  if ( now - lastNetworkAttemps < ACQUISION_PERIOD_4G ) {
-    Serial.println(" success");
-  }
-  else {
-    Serial.println("Max period attempted to connect to 4G, DeepSleep activated");
-    modem_off();
-    Serial.println("Modem Off; waiting 2 sec");
-    esp_deep_sleep_start();
+  if ( DEEP_SLEEP_ACTIVATED ) {
+    if ( now - lastNetworkAttemps < ACQUISION_PERIOD_4G ) {
+      Serial.println(" success");
+    }
+    else {
+      Serial.println("Max period attempted to connect to 4G, DeepSleep activated");
+      modem_off();
+      Serial.println("Modem Off; waiting 2 sec");
+      esp_deep_sleep_start();
+    }
   }
 
  if (modem.isNetworkConnected()) { Serial.println("Network connected"); }
@@ -440,15 +442,11 @@ void setup()
 
   while (!mqtt.connected()) {
     Serial.println("Connecting to MQTT...\n");
-
     //if (mqtt.connect("ESP32Client", mqttUser, mqttPassword )) {
     //add a uuid for each rover https://github.com/knolleary/pubsubclient/issues/372#issuecomment-352086415
     if (mqtt.connect(matUuid , mqttUser, mqttPassword )) {
-
       Serial.println("connected");
-
     } else {
-
       Serial.print("failed with state ");
       Serial.print(mqtt.state());
       delay(1500);
@@ -589,8 +587,8 @@ void loop()
       Serial.println("lastState == 0 Valued to " + String(now) );
       lastState = now;
   }
-
-  if ( lastState !=0 && now - lastState > RTK_ACQUISITION_PERIOD*1000 ){
+  
+  if ( DEEP_SLEEP_ACTIVATED && lastState !=0 && now - lastState > RTK_ACQUISITION_PERIOD*1000 ){
       Serial.println("Record during period is done, we can sleep at " + String(now) + " during " + String(TIME_TO_SLEEP) + " seconds");
       Serial.println("ESP32 will wake up in " + String(TIME_TO_SLEEP) + " seconds");
       modem_off();

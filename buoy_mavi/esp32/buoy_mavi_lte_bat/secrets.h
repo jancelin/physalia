@@ -9,7 +9,7 @@
 
 // DEEP SLEEP CONFIGURATION
 #define uS_TO_S_FACTOR 1000000
-
+bool DEEP_SLEEP_ACTIVATED = false;     // True = DeepSleep sinon DeepSleep ( off ) captation en continue
 int TIME_TO_SLEEP = 300; // temps de repos en deepsleep.
 int RTK_ACQUISITION_PERIOD = 120; // Temps pendant lequel on doit capter de la donnée en RTK ( secondes )
 int RTK_MAX_RESEARCH = 120; // Temps max pendant lequel le dispositif recherche du RTK ( secondes )
@@ -20,7 +20,7 @@ int ACQUISION_PERIOD_4G = 120; // Temps ( en seconde ) pendant lequel on va cher
 // BAT
 int BAT_PERIOD = 10;    // Interval pour envoi de l'état de la batterie (en seconde )
 
-//GNSS
+// GNSS acquisition Frequency ( Hz )
 int GNSS_FREQ = 1;
 
 //MQTT connexion
