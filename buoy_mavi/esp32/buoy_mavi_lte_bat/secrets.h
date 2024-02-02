@@ -16,12 +16,17 @@ int RTK_MAX_RESEARCH = 120; // Temps max pendant lequel le dispositif recherche 
 
 RTC_DATA_ATTR int lastPeriodRecord = 0;
 
+
+// BAT
+int BAT_PERIOD = 10;
+
 //MQTT connexion
 const char* mqttServer = "mavi-mqtt.centipede.fr";
 const int mqttPort = 8090;
 const char* mqttUser = "";
 const char* mqttPassword = "";
 const char* mqtttopic = "buoy/mavi";
+const char* mqttbat = "buoy/bat";
 
 //material uuid
 const char matUuid[] = "'TESTv3'";
