@@ -281,7 +281,7 @@ void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
     // When connecting USB, the battery detection will return 0,
     // because the adc detection circuit is disconnected when connecting USB
     Serial.println(voltage);
-    if (voltage == "0.00") {
+    if (battery_voltage == 0.00) {
         Serial.println("USB is connected, please disconnect USB.");
     }
     mqtt.publish(mqttbat, voltage.c_str());
@@ -411,7 +411,7 @@ void setup()
 
   myGNSS.setDGNSSConfiguration(SFE_UBLOX_DGNSS_MODE_FIXED); // Set the differential mode - ambiguities are fixed whenever possible
 
-  myGNSS.setNavigationFrequency(1); //Set output in Hz.
+  myGNSS.setNavigationFrequency(GNSS_FREQ); //Set output in Hz.
 
   // Set the Main Talker ID to "GP". The NMEA GGA messages will be GPGGA instead of GNGGA
   myGNSS.setMainTalkerID(SFE_UBLOX_MAIN_TALKER_ID_GP);
