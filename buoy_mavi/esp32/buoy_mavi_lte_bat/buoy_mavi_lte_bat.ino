@@ -372,6 +372,8 @@ void setup()
   Serial.print("Waiting for network...");
   int lastNetworkAttemps = millis();
   int now = millis(); 
+
+  // Testing 4G connection during ACQUISION_PERIOD_4G ( second ), if not connected after that, DeepSleep is launched
   while(!modem.waitForNetwork() && ( now - lastNetworkAttemps < ACQUISION_PERIOD_4G ) ) {
   //if (!modem.waitForNetwork()) {
     Serial.println("fail to find network, waiting 10sec before retry");
@@ -422,24 +424,17 @@ void setup()
 
   myGNSS.setI2COutput(COM_TYPE_UBX | COM_TYPE_NMEA);                                //Set the I2C port to output both NMEA and UBX messages
   myGNSS.setPortInput(COM_PORT_I2C, COM_TYPE_UBX | COM_TYPE_NMEA | COM_TYPE_RTCM3); //Be sure RTCM3 input is enabled. UBX + RTCM3 is not a valid state.
-
   myGNSS.setDGNSSConfiguration(SFE_UBLOX_DGNSS_MODE_FIXED); // Set the differential mode - ambiguities are fixed whenever possible
-
   myGNSS.setNavigationFrequency(GNSS_FREQ); //Set output in Hz.
 
   // Set the Main Talker ID to "GP". The NMEA GGA messages will be GPGGA instead of GNGGA
   myGNSS.setMainTalkerID(SFE_UBLOX_MAIN_TALKER_ID_GP);
-
   myGNSS.setNMEAGPGGAcallbackPtr(&pushGPGGA); // Set up the callback for GPGGA
-
   myGNSS.enableNMEAMessage(UBX_NMEA_GGA, COM_PORT_I2C, 60); // Tell the module to output GGA every 60 seconds
-
   myGNSS.setAutoPVTcallbackPtr(&printPVTdata); // Enable automatic NAV PVT messages with callback to printPVTdata so we can watch the carrier solution go to fixed
-
   //myGNSS.saveConfiguration(VAL_CFG_SUBSEC_IOPORT | VAL_CFG_SUBSEC_MSGCONF); //Optional: Save the ioPort and message settings to NVM
 
   //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
   mqtt.setServer(mqttServer, mqttPort);
   mqtt.setCallback(callback);
 
