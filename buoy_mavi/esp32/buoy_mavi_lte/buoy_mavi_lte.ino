@@ -290,40 +290,6 @@ void setup()
   // Configuration de WakeUp avec une photorésistance. 
   esp_sleep_enable_ext0_wakeup(GPIO_NUM_2, HIGH);
 
-//wifi----------------------
-  // bool keepTrying = true;
-  // while (keepTrying)
-  // {
-  //   Serial.print(F("Connecting to local WiFi"));
-
-  //   unsigned long startTime = millis();
-  //   WiFi.begin(ssid, password);
-  //   while ((WiFi.status() != WL_CONNECTED) && (millis() < (startTime + 10000))) // Timeout after 10 seconds
-  //   {
-  //     delay(500);
-  //     Serial.print(F("."));
-  //   }
-  //   Serial.println();
-
-  //   if (WiFi.status() == WL_CONNECTED)
-  //     keepTrying = false; // Connected!
-  //   else
-  //   {
-  //     WiFi.disconnect(true);
-  //     WiFi.mode(WIFI_OFF);
-  //   }
-  // }
-
-  // Serial.println(F("WiFi connected with IP: "));
-  // Serial.println(WiFi.localIP());
-  // WiFi.setAutoReconnect(true);
-  // WiFi.persistent(true);
-  // delay(500);
-//----------------------------wifi
-//GSM-----------------------------
-
-
-
   delay(10);
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, HIGH);
@@ -443,18 +409,23 @@ void setup()
       lastReconnectAttempt = 0;
     }
   }
-
-  //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
+  
   while (Serial.available()) // Empty the serial buffer
     Serial.read();
 }
-
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+//=-= SETUP END -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 void loop()
 {
+
   long now = millis();
+  // Check if error loop 
+  if ( lastState !=0 && now - lastState > RTK_ACQUISITION_PERIOD*1000*1.2 ){ 
+      Serial.println("Error detected during period is done at " + String(now));
+      ESP.restart();
+  }
 
   myGNSS.checkUblox(); // Check for the arrival of new GNSS data and process it.
   myGNSS.checkCallbacks(); // Check if any GNSS callbacks are waiting to be processed.
@@ -520,8 +491,8 @@ void loop()
   }
   //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
   //MQTT
+  now = millis();
   if (!mqtt.connected()) {
-    long now = millis();
     if (now - lastReconnectAttempt > 5000) {
       lastReconnectAttempt = now;
       // Attempt to reconnect
@@ -574,7 +545,8 @@ void loop()
   }
 //------------------------------GSM
 
-//DeepSleep configuration
+  // DeepSleep configuration
+  // -----------------------
   if ( lastState == 0 ) {
       Serial.println("lastState == 0 Valued to " + String(now) );
       lastState = now;
@@ -588,10 +560,12 @@ void loop()
       delay(2000);
       Serial.println("Good night ! ");
       esp_deep_sleep_start();
-  }  
+  }
+
   
 }
-
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// LOOP END =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Permet d'afficher la raison du réveil du DeepSleep
 void print_wakeup_reason(){
