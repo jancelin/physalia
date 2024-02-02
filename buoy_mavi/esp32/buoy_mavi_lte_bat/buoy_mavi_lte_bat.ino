@@ -140,11 +140,11 @@ SFE_UBLOX_GNSS myGNSS;
 PubSubClient mqtt(mqttClient); //MQTT
 long lastReconnectAttempt = 0;
 
-/* CONFIG PERIOD DE CAPATAION EN RTK*/
+/* CONFIG PERIOD DE CAPTATION EN RTK*/
 bool state_fix = false;
 long nb_millisecond_recorded = 0;
 long lastState = 0;
-
+long lastNetworkAttemps = 0;
 void callback(char* topic, byte* payload, unsigned int length) {
   // handle message arrived
 }
@@ -281,7 +281,7 @@ void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
     // When connecting USB, the battery detection will return 0,
     // because the adc detection circuit is disconnected when connecting USB
     Serial.println(voltage);
-    if (voltage == "0.00") {
+    if (battery_voltage == 0.00 ) {
         Serial.println("USB is connected, please disconnect USB.");
     }
     mqtt.publish(mqttbat, voltage.c_str());
@@ -370,12 +370,26 @@ void setup()
 #endif
 
   Serial.print("Waiting for network...");
-  if (!modem.waitForNetwork()) {
-    Serial.println(" fail");
+  int lastNetworkAttemps = millis();
+  int now = millis(); 
+  while(!modem.waitForNetwork() && ( now - lastNetworkAttemps < ACQUISION_PERIOD_4G ) ) {
+  //if (!modem.waitForNetwork()) {
+    Serial.println("fail to find network, waiting 10sec before retry");
     delay(10000);
-    return;
+    now = millis();
+    //return;
   }
-  Serial.println(" success");
+
+  if ( now - lastNetworkAttemps < ACQUISION_PERIOD_4G ) {
+    Serial.println(" success");
+  }
+  else {
+    Serial.println("Max period attempted to connect to 4G, DeepSleep activated");
+    modem_off();
+    Serial.println("Modem Off; waiting 2 sec");
+    esp_deep_sleep_start();
+  }
+
  if (modem.isNetworkConnected()) { Serial.println("Network connected"); }
 
 #if TINY_GSM_USE_GPRS

@@ -11,14 +11,14 @@
 #define uS_TO_S_FACTOR 1000000
 
 int TIME_TO_SLEEP = 180; // temps de repos en deepsleep.
-int RTK_ACQUISITION_PERIOD = 120; // Temps pendant lequel on doit capter de la donnée en RTK ( secondes )
+int RTK_ACQUISITION_PERIOD = 600; // Temps pendant lequel on doit capter de la donnée en RTK ( secondes )
 int RTK_MAX_RESEARCH = 120; // Temps max pendant lequel le dispositif recherche du RTK ( seconds )
 
 RTC_DATA_ATTR int lastPeriodRecord = 0;
-
+int ACQUISION_PERIOD_4G = 120; // Temps pendant lequel on va chercher le network 4G avant de faire un deepsleep( TIME_TO_SLEEP )
 
 // BAT
-int BAT_PERIOD = 10;
+int BAT_PERIOD = 10;    // Interval pour envoi de l'état de la batterie
 
 //MQTT connexion
 const char* mqttServer = "mavi-mqtt.centipede.fr";
@@ -29,7 +29,7 @@ const char* mqtttopic = "buoy/mavi";
 const char* mqttbat = "buoy/bat";
 
 //material uuid
-const char matUuid[] = "'TESTv3'";
+const char matUuid[] = "'TESTv3_Rom'";
 
 //Centipede works well and is free
 const char casterHost[] = "caster.centipede.fr";
