@@ -425,7 +425,7 @@ void setup()
 
   myGNSS.setDGNSSConfiguration(SFE_UBLOX_DGNSS_MODE_FIXED); // Set the differential mode - ambiguities are fixed whenever possible
 
-  myGNSS.setNavigationFrequency(1); //Set output in Hz.
+  myGNSS.setNavigationFrequency(GNSS_FREQ); //Set output in Hz.
 
   // Set the Main Talker ID to "GP". The NMEA GGA messages will be GPGGA instead of GNGGA
   myGNSS.setMainTalkerID(SFE_UBLOX_MAIN_TALKER_ID_GP);
