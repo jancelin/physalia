@@ -307,11 +307,14 @@ void setup()
   // Deep sleep 
   //Affiche la source du reveil
   print_wakeup_reason();
-
-  Serial.println("SETUP - Sleep mode configured to : " + String(TIME_TO_SLEEP) + " seconds" );
-  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
-  // Configuration de WakeUp avec une photorésistance. 
-  esp_sleep_enable_ext0_wakeup(GPIO_NUM_2, HIGH);
+  if ( DEEP_SLEEP_ACTIVATED ) {
+    Serial.println("SETUP - Sleep mode configured to : " + String(TIME_TO_SLEEP) + " seconds" );
+    esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+    // Configuration de WakeUp avec une photorésistance. 
+    esp_sleep_enable_ext0_wakeup(GPIO_NUM_2, HIGH);
+  } else {
+    Serial.println("SETUP - DeepSleep mode disactivated");
+  }
 
   //BAT
   esp_adc_cal_characteristics_t adc_chars;
