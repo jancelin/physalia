@@ -310,6 +310,7 @@ void setup()
   if ( DEEP_SLEEP_ACTIVATED ) {
     Serial.println("SETUP - Sleep mode configured to : " + String(TIME_TO_SLEEP) + " seconds" );
     esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+    Serial.println("SETUP - GNSS acquisition period configured to : " + String(RTK_ACQUISITION_PERIOD) + " seconds" );
     // Configuration de WakeUp avec une photorésistance. 
     esp_sleep_enable_ext0_wakeup(GPIO_NUM_2, HIGH);
   } else {
@@ -328,8 +329,7 @@ void setup()
       Serial.println("Default Vref: 1100mV");
   }
 
-//GSM-----------------------------
-
+  //GSM-----------------------------
   delay(10);
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, HIGH);
@@ -558,14 +558,36 @@ void loop()
   //GSM-------------------------------
   // Make sure we're still registered on the network
   if (!modem.isNetworkConnected()) {
-    Serial.println("Network disconnected");
-    if (!modem.waitForNetwork(180000L, true)) {
-      Serial.println(" fail");
+    lastNetworkAttemps = millis();
+    Serial.println("LOOP - Network disconnected");
+
+    // Testing 4G connection during ACQUISION_PERIOD_4G ( second ), if not connected after that, DeepSleep is launched
+    while(!modem.waitForNetwork() && ( now - lastNetworkAttemps < ACQUISION_PERIOD_4G ) ) {
+      Serial.println("LOOP - fail to find network, waiting 10sec before retry");
       delay(10000);
-      return;
+      now = millis();
     }
+    
+    // OLD --------------------------------------
+    // if (!modem.waitForNetwork(180000L, true)) {
+    //   Serial.println(" fail");
+    //   delay(10000);
+    //   return;
+    // }
+
     if (modem.isNetworkConnected()) {
-      Serial.println("Network re-connected");
+      Serial.println("LOOP - Network re-connected");
+    } 
+    if ( DEEP_SLEEP_ACTIVATED ) {
+      if ( now - lastNetworkAttemps < ACQUISION_PERIOD_4G ) {
+        Serial.println("LOOP - Network re-connected before max attempts");
+      }
+      else {
+        Serial.println("LOOP - Max period attempted to connect to 4G, DeepSleep activated");
+        modem_off();
+        Serial.println("LOOP - Modem Off; waiting 2 sec");
+        esp_deep_sleep_start();
+      }
     }
 
 #if TINY_GSM_USE_GPRS
