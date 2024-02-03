@@ -46,6 +46,16 @@ tygsm: https://github.com/vshymanskyy/TinyGSM
 #include <SPI.h>
 //#include <u-blox_config_keys.h>
 
+// HARDWARE CONNECTION
+#define pin_GNSS 32     // ANALOG PIN 33 ( Relais 1 )
+#define MODEM_PWKEY 4
+
+// BAT
+#include <esp_adc_cal.h>
+#define ADC_PIN     35
+int vref = 1100;
+uint32_t timeStamp = 0;
+
 //#include <WiFi.h>
 //GSM----------------------------
 // need enough space in the buffer for the entire response
@@ -129,31 +139,14 @@ SFE_UBLOX_GNSS myGNSS;
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 PubSubClient mqtt(mqttClient); //MQTT
 long lastReconnectAttempt = 0;
-DynamicJsonDocument jsonDoc(256); 
 
-/* CONFIG PERIOD DE CAPATAION EN RTK*/
+/* CONFIG PERIOD DE CAPTATION EN RTK*/
 bool state_fix = false;
 long nb_millisecond_recorded = 0;
 long lastState = 0;
-
-/* ------------------------
- *  MQTT CALLBACK
- *  -----------------------
- */
-void callback(char* topic, byte* message, unsigned int length) {
-  Serial.print("Message arrived on topic: ");
-  Serial.print(topic);
-  Serial.print(". Message: ");
-  String messageTemp;
-  
-  for (int i = 0; i < length; i++) {
-    Serial.print((char)message[i]);
-    messageTemp += (char)message[i];
-  }
-  Serial.println();
-  if (String(topic) == mqtt_input ) {
-    commandManager(messageTemp);
-  }
+long lastNetworkAttemps = 0;
+void callback(char* topic, byte* payload, unsigned int length) {
+  // handle message arrived
 }
 
 boolean reconnect() {
@@ -278,6 +271,23 @@ void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
   mqtt.publish(mqtttopic, msg.c_str());
   Serial.println("Message send");
 
+    //BAT
+  if (millis() - timeStamp > BAT_PERIOD*1000) {
+    timeStamp = millis();
+    uint16_t v = analogRead(ADC_PIN);
+    float battery_voltage = ((float)v / 4095.0) * 2.0 * 3.3 * (vref / 1000.0);
+    String voltage = "'"+date1+time1+"'" + ","+ matUuid + ","+String(battery_voltage);
+
+    // When connecting USB, the battery detection will return 0,
+    // because the adc detection circuit is disconnected when connecting USB
+    Serial.println(voltage);
+    if (battery_voltage == 0.00 ) {
+        Serial.println("USB is connected, please disconnect USB.");
+    }
+    mqtt.publish(mqttbat, voltage.c_str());
+    Serial.println("Message send");
+  }
+
 }
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -297,12 +307,29 @@ void setup()
   // Deep sleep 
   //Affiche la source du reveil
   print_wakeup_reason();
+  if ( DEEP_SLEEP_ACTIVATED ) {
+    Serial.println("SETUP - Sleep mode configured to : " + String(TIME_TO_SLEEP) + " seconds" );
+    esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+    Serial.println("SETUP - GNSS acquisition period configured to : " + String(RTK_ACQUISITION_PERIOD) + " seconds" );
+    // Configuration de WakeUp avec une photorésistance. 
+    esp_sleep_enable_ext0_wakeup(GPIO_NUM_2, HIGH);
+  } else {
+    Serial.println("SETUP - DeepSleep mode disactivated");
+  }
 
-  Serial.println("SETUP - Sleep mode configured to : " + String(TIME_TO_SLEEP) + " seconds" );
-  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
-  // Configuration de WakeUp avec une photorésistance. 
-  esp_sleep_enable_ext0_wakeup(GPIO_NUM_2, HIGH);
+  //BAT
+  esp_adc_cal_characteristics_t adc_chars;
+  esp_adc_cal_value_t val_type = esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, 1100, &adc_chars);    //Check type of calibration value used to characterize ADC
+  if (val_type == ESP_ADC_CAL_VAL_EFUSE_VREF) {
+      Serial.printf("eFuse Vref:%u mV", adc_chars.vref);
+      vref = adc_chars.vref;
+  } else if (val_type == ESP_ADC_CAL_VAL_EFUSE_TP) {
+      Serial.printf("Two Point --> coeff_a:%umV coeff_b:%umV\n", adc_chars.coeff_a, adc_chars.coeff_b);
+  } else {
+      Serial.println("Default Vref: 1100mV");
+  }
 
+  //GSM-----------------------------
   delay(10);
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, HIGH);
@@ -346,12 +373,30 @@ void setup()
 #endif
 
   Serial.print("Waiting for network...");
-  if (!modem.waitForNetwork()) {
-    Serial.println(" fail");
+  int lastNetworkAttemps = millis();
+  int now = millis(); 
+
+  // Testing 4G connection during ACQUISION_PERIOD_4G ( second ), if not connected after that, DeepSleep is launched
+  while(!modem.waitForNetwork() && ( now - lastNetworkAttemps < ACQUISION_PERIOD_4G ) ) {
+  //if (!modem.waitForNetwork()) {
+    Serial.println("fail to find network, waiting 10sec before retry");
     delay(10000);
-    return;
+    now = millis();
+    //return;
   }
-  Serial.println(" success");
+
+  if ( DEEP_SLEEP_ACTIVATED ) {
+    if ( now - lastNetworkAttemps < ACQUISION_PERIOD_4G ) {
+      Serial.println(" success");
+    }
+    else {
+      Serial.println("Max period attempted to connect to 4G, DeepSleep activated");
+      modem_off();
+      Serial.println("Modem Off; waiting 2 sec");
+      esp_deep_sleep_start();
+    }
+  }
+
  if (modem.isNetworkConnected()) { Serial.println("Network connected"); }
 
 #if TINY_GSM_USE_GPRS
@@ -384,57 +429,46 @@ void setup()
 
   myGNSS.setI2COutput(COM_TYPE_UBX | COM_TYPE_NMEA);                                //Set the I2C port to output both NMEA and UBX messages
   myGNSS.setPortInput(COM_PORT_I2C, COM_TYPE_UBX | COM_TYPE_NMEA | COM_TYPE_RTCM3); //Be sure RTCM3 input is enabled. UBX + RTCM3 is not a valid state.
-
   myGNSS.setDGNSSConfiguration(SFE_UBLOX_DGNSS_MODE_FIXED); // Set the differential mode - ambiguities are fixed whenever possible
-
-  myGNSS.setNavigationFrequency(1); //Set output in Hz.
+  myGNSS.setNavigationFrequency(GNSS_FREQ); //Set output in Hz.
 
   // Set the Main Talker ID to "GP". The NMEA GGA messages will be GPGGA instead of GNGGA
   myGNSS.setMainTalkerID(SFE_UBLOX_MAIN_TALKER_ID_GP);
-
   myGNSS.setNMEAGPGGAcallbackPtr(&pushGPGGA); // Set up the callback for GPGGA
-
   myGNSS.enableNMEAMessage(UBX_NMEA_GGA, COM_PORT_I2C, 60); // Tell the module to output GGA every 60 seconds
-
   myGNSS.setAutoPVTcallbackPtr(&printPVTdata); // Enable automatic NAV PVT messages with callback to printPVTdata so we can watch the carrier solution go to fixed
-
   //myGNSS.saveConfiguration(VAL_CFG_SUBSEC_IOPORT | VAL_CFG_SUBSEC_MSGCONF); //Optional: Save the ioPort and message settings to NVM
 
   //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
   mqtt.setServer(mqttServer, mqttPort);
   mqtt.setCallback(callback);
 
   while (!mqtt.connected()) {
     Serial.println("Connecting to MQTT...\n");
-
     //if (mqtt.connect("ESP32Client", mqttUser, mqttPassword )) {
     //add a uuid for each rover https://github.com/knolleary/pubsubclient/issues/372#issuecomment-352086415
     if (mqtt.connect(matUuid , mqttUser, mqttPassword )) {
-
       Serial.println("connected");
-
     } else {
-
       Serial.print("failed with state ");
       Serial.print(mqtt.state());
       delay(1500);
       lastReconnectAttempt = 0;
     }
   }
-  
+
+  //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
   while (Serial.available()) // Empty the serial buffer
     Serial.read();
 }
-//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-//=-= SETUP END -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 void loop()
 {
-
   long now = millis();
-  // Check if error loop 
+    // Check if error loop 
   if ( lastState !=0 && now - lastState > RTK_ACQUISITION_PERIOD*1000*1.2 ){ 
       Serial.println("Error detected during period is done at " + String(now));
       ESP.restart();
@@ -504,8 +538,9 @@ void loop()
   }
   //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
   //MQTT
-  now = millis();
+   now = millis();
   if (!mqtt.connected()) {
+    
     if (now - lastReconnectAttempt > 5000) {
       lastReconnectAttempt = now;
       // Attempt to reconnect
@@ -518,27 +553,41 @@ void loop()
 
     mqtt.loop();
   }
-  //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-  // // Wifi auto reconnect
-  // delay(1000);
-  // if(WiFi.status() == WL_CONNECTED){
-  //   //Serial.println("WIFI connect!!!!");
-  //   }
-  // else{
-  //   Serial.println("WIFI disconnected. reconnect...");
-  //   WiFi.reconnect();
-  // }
+
+
   //GSM-------------------------------
   // Make sure we're still registered on the network
   if (!modem.isNetworkConnected()) {
-    Serial.println("Network disconnected");
-    if (!modem.waitForNetwork(180000L, true)) {
-      Serial.println(" fail");
+    lastNetworkAttemps = millis();
+    Serial.println("LOOP - Network disconnected");
+
+    // Testing 4G connection during ACQUISION_PERIOD_4G ( second ), if not connected after that, DeepSleep is launched
+    while(!modem.waitForNetwork() && ( now - lastNetworkAttemps < ACQUISION_PERIOD_4G ) ) {
+      Serial.println("LOOP - fail to find network, waiting 10sec before retry");
       delay(10000);
-      return;
+      now = millis();
     }
+    
+    // OLD --------------------------------------
+    // if (!modem.waitForNetwork(180000L, true)) {
+    //   Serial.println(" fail");
+    //   delay(10000);
+    //   return;
+    // }
+
     if (modem.isNetworkConnected()) {
-      Serial.println("Network re-connected");
+      Serial.println("LOOP - Network re-connected");
+    } 
+    if ( DEEP_SLEEP_ACTIVATED ) {
+      if ( now - lastNetworkAttemps < ACQUISION_PERIOD_4G ) {
+        Serial.println("LOOP - Network re-connected before max attempts");
+      }
+      else {
+        Serial.println("LOOP - Max period attempted to connect to 4G, DeepSleep activated");
+        modem_off();
+        Serial.println("LOOP - Modem Off; waiting 2 sec");
+        esp_deep_sleep_start();
+      }
     }
 
 #if TINY_GSM_USE_GPRS
@@ -558,14 +607,13 @@ void loop()
   }
 //------------------------------GSM
 
-  // DeepSleep configuration
-  // -----------------------
+//DeepSleep configuration
   if ( lastState == 0 ) {
       Serial.println("lastState == 0 Valued to " + String(now) );
       lastState = now;
   }
-
-  if ( lastState !=0 && now - lastState > RTK_ACQUISITION_PERIOD*1000 ){
+  
+  if ( DEEP_SLEEP_ACTIVATED && lastState !=0 && now - lastState > RTK_ACQUISITION_PERIOD*1000 ){
       Serial.println("Record during period is done, we can sleep at " + String(now) + " during " + String(TIME_TO_SLEEP) + " seconds");
       Serial.println("ESP32 will wake up in " + String(TIME_TO_SLEEP) + " seconds");
       modem_off();
@@ -574,10 +622,9 @@ void loop()
       Serial.println("Good night ! ");
       esp_deep_sleep_start();
   }  
-
+  
 }
-//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-// LOOP END =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Permet d'afficher la raison du réveil du DeepSleep
 void print_wakeup_reason(){
@@ -803,7 +850,7 @@ void closeConnection()
     ntripClient.stop();
   }
   Serial.println(F("Disconnected!"));
-  ESP.restart(); //TODO:resolve, delay time, bug infinity reconnect ntrip if base RTK down
+  //ESP.restart(); //TODO:resolve, delay time, bug infinity reconnect ntrip if base RTK down
 }
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -848,45 +895,4 @@ void modem_off()
   //modem.radioOff();
   modem.sleepEnable(false); // required in case sleep was activated and will apply after reboot
   modem.poweroff();
-}
-
-int commandManager(String message) {
-  DeserializationError error = deserializeJson(jsonDoc, message);
-  if(error) {
-    Serial.println("parseObject() failed");
-  }
-  // Exemple = {"order":"drotek_OFF"}  
-  if (jsonDoc["order"] == "drotek_OFF")
-  {
-    Serial.println(" - order drotek_OFF received");
-    digitalWrite(pin_GNSS,HIGH);
-    Serial.println(" - pin_GNSS is HIGH");
-    return 1;
-  } //  {"order":"drotek_ON"}
-  else if (jsonDoc["order"] == "drotek_ON")
-  {
-    Serial.println(" - order drotek ON received");
-    digitalWrite(pin_GNSS, LOW);
-    Serial.println(" - pin_GNSS is LOW");
-    return 1;
-  }//   {"order":"deepSleep_ON", "TIME_TO_SLEEP":60}
-  else if (jsonDoc["order"] == "deepSleep_ON")
-  {
-    Serial.println(" - deepSleep ON received");
-    Serial.println(" - deepSleep Shutdown GNSS");
-    digitalWrite(pin_GNSS, HIGH);
-    delay(200);
-    if ( jsonDoc["TIME_TO_SLEEP"].as<int>() != 0 ) {
-      TIME_TO_SLEEP = jsonDoc["TIME_TO_SLEEP"].as<int>();
-      esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);   
-      Serial.println(" - deepSleep received TIME_TO_SLEEP update to " + String(TIME_TO_SLEEP) + " sec");
-    }
-    Serial.println(" - deepSleep begin for " + String(TIME_TO_SLEEP) + " sec");
-    esp_deep_sleep_start();
-    return 1;
-  }
-  else {
-    Serial.println("Order error");
-    return 0;
-  }
 }
