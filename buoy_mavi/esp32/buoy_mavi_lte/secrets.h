@@ -3,14 +3,14 @@
 //const char password[] = "12345678";
 
 // HARDWARE CONNECTION
-#define pin_GNSS 33     // ANALOG PIN 33 ( Relais 1 )
-#define pin_GSM 32        // ANALOG PIN 33 ( Relais 2 )
-#define LDR 2  // composante photoresistor sur la pin GPI02
+#define pin_GNSS 32     // ANALOG PIN 33 ( Relais 1 )
+
+#define MODEM_PWKEY 4
 
 // DEEP SLEEP CONFIGURATION
 #define uS_TO_S_FACTOR 1000000
 
-int TIME_TO_SLEEP = 30; // temps de repos en deepsleep.
+int TIME_TO_SLEEP = 300; // temps de repos en deepsleep.
 int RTK_ACQUISITION_PERIOD = 120; // Temps pendant lequel on doit capter de la donnée en RTK ( secondes )
 int RTK_MAX_RESEARCH = 120; // Temps max pendant lequel le dispositif recherche du RTK ( seconds )
 
@@ -22,6 +22,7 @@ const int mqttPort = 8090;
 const char* mqttUser = "";
 const char* mqttPassword = "";
 const char* mqtttopic = "buoy/mavi";
+const char* mqtt_input = "buoy/mavi/input";
 
 //material uuid
 const char matUuid[] = "'TESTv3_Rom'";

@@ -46,10 +46,6 @@ tygsm: https://github.com/vshymanskyy/TinyGSM
 #include <SPI.h>
 //#include <u-blox_config_keys.h>
 
-// HARDWARE CONNECTION
-#define pin_GNSS 32     // ANALOG PIN 33 ( Relais 1 )
-#define MODEM_PWKEY 4
-
 //#include <WiFi.h>
 //GSM----------------------------
 // need enough space in the buffer for the entire response
@@ -133,14 +129,31 @@ SFE_UBLOX_GNSS myGNSS;
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 PubSubClient mqtt(mqttClient); //MQTT
 long lastReconnectAttempt = 0;
+DynamicJsonDocument jsonDoc(256); 
 
 /* CONFIG PERIOD DE CAPATAION EN RTK*/
 bool state_fix = false;
 long nb_millisecond_recorded = 0;
 long lastState = 0;
 
-void callback(char* topic, byte* payload, unsigned int length) {
-  // handle message arrived
+/* ------------------------
+ *  MQTT CALLBACK
+ *  -----------------------
+ */
+void callback(char* topic, byte* message, unsigned int length) {
+  Serial.print("Message arrived on topic: ");
+  Serial.print(topic);
+  Serial.print(". Message: ");
+  String messageTemp;
+  
+  for (int i = 0; i < length; i++) {
+    Serial.print((char)message[i]);
+    messageTemp += (char)message[i];
+  }
+  Serial.println();
+  if (String(topic) == mqtt_input ) {
+    commandManager(messageTemp);
+  }
 }
 
 boolean reconnect() {
@@ -589,7 +602,7 @@ void loop()
       Serial.println("Good night ! ");
       esp_deep_sleep_start();
   }  
-  
+
 }
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -862,4 +875,45 @@ void modem_off()
   //modem.radioOff();
   modem.sleepEnable(false); // required in case sleep was activated and will apply after reboot
   modem.poweroff();
+}
+
+int commandManager(String message) {
+  DeserializationError error = deserializeJson(jsonDoc, message);
+  if(error) {
+    Serial.println("parseObject() failed");
+  }
+  // Exemple = {"order":"drotek_OFF"}  
+  if (jsonDoc["order"] == "drotek_OFF")
+  {
+    Serial.println(" - order drotek_OFF received");
+    digitalWrite(pin_GNSS,HIGH);
+    Serial.println(" - pin_GNSS is HIGH");
+    return 1;
+  } //  {"order":"drotek_ON"}
+  else if (jsonDoc["order"] == "drotek_ON")
+  {
+    Serial.println(" - order drotek ON received");
+    digitalWrite(pin_GNSS, LOW);
+    Serial.println(" - pin_GNSS is LOW");
+    return 1;
+  }//   {"order":"deepSleep_ON", "TIME_TO_SLEEP":60}
+  else if (jsonDoc["order"] == "deepSleep_ON")
+  {
+    Serial.println(" - deepSleep ON received");
+    Serial.println(" - deepSleep Shutdown GNSS");
+    digitalWrite(pin_GNSS, HIGH);
+    delay(200);
+    if ( jsonDoc["TIME_TO_SLEEP"].as<int>() != 0 ) {
+      TIME_TO_SLEEP = jsonDoc["TIME_TO_SLEEP"].as<int>();
+      esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);   
+      Serial.println(" - deepSleep received TIME_TO_SLEEP update to " + String(TIME_TO_SLEEP) + " sec");
+    }
+    Serial.println(" - deepSleep begin for " + String(TIME_TO_SLEEP) + " sec");
+    esp_deep_sleep_start();
+    return 1;
+  }
+  else {
+    Serial.println("Order error");
+    return 0;
+  }
 }
