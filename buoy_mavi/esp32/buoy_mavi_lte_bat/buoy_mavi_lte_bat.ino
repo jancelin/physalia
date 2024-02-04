@@ -307,6 +307,8 @@ void setup()
   // Deep sleep 
   //Affiche la source du reveil
   print_wakeup_reason();
+  Serial.print("SETUP - DEEPSLEEP State : ");
+  Serial.println(DEEP_SLEEP_ACTIVATED);
   if ( DEEP_SLEEP_ACTIVATED ) {
     Serial.println("SETUP - Sleep mode configured to : " + String(TIME_TO_SLEEP) + " seconds" );
     esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
