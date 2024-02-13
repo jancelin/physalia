@@ -120,8 +120,7 @@ SFE_UBLOX_GNSS myGNSS;
 #else
 #include <Base64.h> //nfriendly library from https://github.com/adamvr/arduino-base64, will work with any platform
 #endif
-
-//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+ 
 PubSubClient mqtt(mqttClient); //MQTT
 long lastReconnectAttempt = 0;
 
@@ -143,134 +142,11 @@ boolean reconnect() {
   }
   return mqtt.connected();
 }
-//GNSS Global variables=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
+//GNSS Global variables
 unsigned long lastReceivedRTCM_ms = 0;          //5 RTCM messages take approximately ~300ms to arrive at 115200bps
 const unsigned long maxTimeBeforeHangup_ms = 10000UL; //If we fail to get a complete RTCM frame after 10s, then disconnect from caster
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-// Callback: pushGPGGA will be called when new GPGGA NMEA data arrives
-// See u-blox_structs.h for the full definition of NMEA_GGA_data_t
-//         _____  You can use any name you like for the callback. Use the same name when you call setNMEAGPGGAcallback
-//        /               _____  This _must_ be NMEA_GGA_data_t
-//        |              /           _____ You can use any name you like for the struct
-//        |              |          /
-//        |              |          |
-void pushGPGGA(NMEA_GGA_data_t *nmeaData)
-{
-  //Provide the caster with our current position as needed
-  if ((ntripClient.connected() == true) && (transmitLocation == true))
-  {
-    Serial.print(F("Pushing GGA to server: "));
-    Serial.print((const char *)nmeaData->nmea); // .nmea is printable (NULL-terminated) and already has \r\n on the end
-
-    //Push our current GGA sentence to caster
-    ntripClient.print((const char *)nmeaData->nmea);
-  }
-}
-
-//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-// Callback: printPVTdata will be called when new NAV PVT data arrives
-// See u-blox_structs.h for the full definition of UBX_NAV_PVT_data_t
-//         _____  You can use any name you like for the callback. Use the same name when you call setAutoPVTcallback
-//        /                  _____  This _must_ be UBX_NAV_PVT_data_t
-//        |                 /               _____ You can use any name you like for the struct
-//        |                 |              /
-//        |                 |              |
-void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
-{
-  long now = millis();
-  // allocate the memory for the document
-  StaticJsonDocument<256> doc;
-  // create an object
-  JsonObject object = doc.to<JsonObject>();
-
-  //doc["capteur"] = matUuid + WiFi.macAddress()+"'";//matUuid; // Print capteur uuid
-  doc["capteur"] = matUuid; // Print capteur uuid
-
-  uint16_t y = ubxDataStruct->year; // Print the year
-  uint8_t mo = ubxDataStruct->month; // Print the year
-  String mo1;
-  if (mo < 10) {mo1 = "0"+ String(mo);} else { mo1 = String(mo);};
-  uint8_t d = ubxDataStruct->day; // Print the year
-  String d1;
-    if (d < 10) {d1 = "0"+ String(d);} else { d1 = String(d);};
-  uint8_t h = ubxDataStruct->hour; // Print the hours
-  String h1;
-    if (h < 10) {h1 = "0"+ String(h);} else { h1 = String(h);};
-  uint8_t m = ubxDataStruct->min; // Print the minutes
-  String m1;
-    if (m < 10) {m1 = "0"+ String(m);} else { m1 = String(m);};
-  uint8_t s = ubxDataStruct->sec; // Print the seconds
-  String s1;
-    if (s < 10) {s1 = "0"+ String(s);} else { s1 = String(s);};
-  unsigned long millisecs = ubxDataStruct->iTOW % 1000; // Print the milliseconds
-  String a = ":";
-  String b = "-";
-  String date1 = y+b+mo1+b+d1+" ";
-  String time1 = h1 +a+ m1 +a+ s1 + "." + millisecs;
-  object["datetime"] = "'"+date1+time1+"'"; // print date time for postgresql data injection.
-
-  double latitude = ubxDataStruct->lat; // Print the latitude
-  doc["lat"] = latitude / 10000000.0;
-
-  double longitude = ubxDataStruct->lon; // Print the longitude
-  doc["lon"] = longitude / 10000000.0;
-
-  double elevation = ubxDataStruct->height; // Print the height above mean sea level
-  doc["elv_m"] = elevation / 1000.0;
-
-  double altitude = ubxDataStruct->hMSL; // Print the height above mean sea level
-  doc["alt_m"] = altitude / 1000.0;
-
-  uint8_t fixType = ubxDataStruct->fixType; // Print the fix type
-  // 0 none/1 Dead reckoning/2 2d/3 3d/4 GNSS + Dead reckoning/ 5 time only
-  doc["fix"] = fixType;
-
-  uint8_t carrSoln = ubxDataStruct->flags.bits.carrSoln; // Print the carrier solution
-  // 0 none/1 floating/ 2 Fixed
-  doc["car"] = carrSoln;
-
-  uint32_t hAcc = ubxDataStruct->hAcc; // Print the horizontal accuracy estimate
-  doc["hacc_mm"] = hAcc;
-
-  uint32_t vAcc = ubxDataStruct->vAcc; // Print the vertical accuracy estimate
-  doc["vacc_mm"] = vAcc;
-
-  uint8_t numSV = ubxDataStruct->numSV; // Print tle number of SVs used in nav solution
-  doc["numsv"] = numSV;
-
-  serializeJson(doc, Serial);
-  Serial.println();
-
-  //Send position to MQTT broker
-  String output = "JSON = ";
-  String msg;
-  serializeJson(doc, msg);
-  mqtt.publish(mqtttopic, msg.c_str());
-  Serial.println("Message send");
-
-  //BAT
-  if (millis() - timeStamp > BAT_PERIOD*1000) {
-    timeStamp = millis();
-    uint16_t v = analogRead(ADC_PIN);
-    float battery_voltage = ((float)v / 4095.0) * 2.0 * 3.3 * (vref / 1000.0);
-    String voltage = "'"+date1+time1+"'" + ","+ matUuid + ","+String(battery_voltage);
-
-    // When connecting USB, the battery detection will return 0,
-    // because the adc detection circuit is disconnected when connecting USB
-    Serial.println(voltage);
-    if (battery_voltage == 0.00 ) {
-        Serial.println("USB is connected, please disconnect USB.");
-    }
-    mqtt.publish(mqttbat, voltage.c_str());
-    Serial.println("Message send");
-  }
-
-}
-
-//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
 void setup()
 {
   Serial.begin(115200);
@@ -360,38 +236,38 @@ void setup()
     delay(10000);
     now = millis();
     //return;
-}
-
-if ( DEEP_SLEEP_ACTIVATED ) {
-  if ( now - lastNetworkAttemps < ACQUISION_PERIOD_4G ) {
-    Serial.println(" success");
   }
-  else {
+
+  if ( DEEP_SLEEP_ACTIVATED ) {
+    if ( now - lastNetworkAttemps < ACQUISION_PERIOD_4G ) {
+      Serial.println(" success");
+    }
+    else {
     Serial.println("Max period attempted to connect to 4G, DeepSleep activated");
     modem_off();
     Serial.println("Modem Off; waiting 2 sec");
     esp_deep_sleep_start();
+    }
   }
-}
 
-if (modem.isNetworkConnected()) { Serial.println("Network connected"); }
+  if (modem.isNetworkConnected()) { Serial.println("Network connected"); }
 
-#if TINY_GSM_USE_GPRS
-  // GPRS connection parameters are usually set after network registration
-  Serial.print(F("Connecting to "));
-  Serial.print(apn);
-  if (!modem.gprsConnect(apn, gprsUser, gprsPass)) {
-    Serial.println(" fail");
-    delay(10000);
-    return;
-  }
-  Serial.println(" success");
+  #if TINY_GSM_USE_GPRS
+    // GPRS connection parameters are usually set after network registration
+    Serial.print(F("Connecting to "));
+    Serial.print(apn);
+    if (!modem.gprsConnect(apn, gprsUser, gprsPass)) {
+      Serial.println(" fail");
+      delay(10000);
+      return;
+    }
+    Serial.println(" success");
 
-  if (modem.isGprsConnected()) { Serial.println("GPRS connected"); }
-#endif
-//GSM---------------------------------
+    if (modem.isGprsConnected()) { Serial.println("GPRS connected"); }
+  #endif
+  //GSM---------------------------------
 
-//GNSS=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+  //GNSS=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
   Serial.println(F("NTRIP testing"));
 
   Wire.begin(); //Start I2C
@@ -559,21 +435,21 @@ void loop()
       }
     }
 
-  #if TINY_GSM_USE_GPRS
-    // and make sure GPRS/EPS is still connected
-    if (!modem.isGprsConnected()) {
-      Serial.println("GPRS disconnected!");
-      Serial.print(F("Connecting to "));
-      Serial.print(apn);
-      if (!modem.gprsConnect(apn, gprsUser, gprsPass)) {
-        Serial.println(" fail");
-        delay(10000);
-        return;
+    #if TINY_GSM_USE_GPRS
+      // and make sure GPRS/EPS is still connected
+      if (!modem.isGprsConnected()) {
+        Serial.println("GPRS disconnected!");
+        Serial.print(F("Connecting to "));
+        Serial.print(apn);
+        if (!modem.gprsConnect(apn, gprsUser, gprsPass)) {
+          Serial.println(" fail");
+          delay(10000);
+          return;
+        }
+        if (modem.isGprsConnected()) { Serial.println("GPRS reconnected"); }
       }
-      if (modem.isGprsConnected()) { Serial.println("GPRS reconnected"); }
-    }
-  #endif
-    }
+    #endif
+  }
 
   //DeepSleep configuration
     if ( lastState == 0 ) {
@@ -618,7 +494,6 @@ void print_wakeup_reason(){
         break;
    }
 }
-
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 //Connect to NTRIP Caster. Return true is connection is successful.
@@ -665,18 +540,18 @@ bool beginClient()
       Serial.print(F("Sending credentials: "));
       Serial.println(userCredentials);
 
-#if defined(ARDUINO_ARCH_ESP32)
+  #if defined(ARDUINO_ARCH_ESP32)
       //Encode with ESP32 built-in library
       base64 b;
       String strEncodedCredentials = b.encode(userCredentials);
       char encodedCredentials[strEncodedCredentials.length() + 1];
       strEncodedCredentials.toCharArray(encodedCredentials, sizeof(encodedCredentials)); //Convert String to char array
-#else
+  #else
       //Encode with nfriendly library
       int encodedLen = base64_enc_len(strlen(userCredentials));
       char encodedCredentials[encodedLen];                                         //Create array large enough to house encoded data
       base64_encode(encodedCredentials, userCredentials, strlen(userCredentials)); //Note: Input array is consumed
-#endif
+  #endif
 
       snprintf(credentials, sizeof(credentials), "Authorization: Basic %s\r\n", encodedCredentials);
     }
@@ -862,4 +737,125 @@ void modem_off()
   //modem.radioOff();
   modem.sleepEnable(false); // required in case sleep was activated and will apply after reboot
   modem.poweroff();
+}
+
+//GNSS=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// Callback: pushGPGGA will be called when new GPGGA NMEA data arrives
+// See u-blox_structs.h for the full definition of NMEA_GGA_data_t
+//         _____  You can use any name you like for the callback. Use the same name when you call setNMEAGPGGAcallback
+//        /               _____  This _must_ be NMEA_GGA_data_t
+//        |              /           _____ You can use any name you like for the struct
+//        |              |          /
+//        |              |          |
+void pushGPGGA(NMEA_GGA_data_t *nmeaData)
+{
+  //Provide the caster with our current position as needed
+  if ((ntripClient.connected() == true) && (transmitLocation == true))
+  {
+    Serial.print(F("Pushing GGA to server: "));
+    Serial.print((const char *)nmeaData->nmea); // .nmea is printable (NULL-terminated) and already has \r\n on the end
+
+    //Push our current GGA sentence to caster
+    ntripClient.print((const char *)nmeaData->nmea);
+  }
+}
+
+//GNSS=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// Callback: printPVTdata will be called when new NAV PVT data arrives
+// See u-blox_structs.h for the full definition of UBX_NAV_PVT_data_t
+//         _____  You can use any name you like for the callback. Use the same name when you call setAutoPVTcallback
+//        /                  _____  This _must_ be UBX_NAV_PVT_data_t
+//        |                 /               _____ You can use any name you like for the struct
+//        |                 |              /
+//        |                 |              |
+void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
+{
+  long now = millis();
+  // allocate the memory for the document
+  StaticJsonDocument<256> doc;
+  // create an object
+  JsonObject object = doc.to<JsonObject>();
+
+  //doc["capteur"] = matUuid + WiFi.macAddress()+"'";//matUuid; // Print capteur uuid
+  doc["capteur"] = matUuid; // Print capteur uuid
+
+  uint16_t y = ubxDataStruct->year; // Print the year
+  uint8_t mo = ubxDataStruct->month; // Print the year
+  String mo1;
+  if (mo < 10) {mo1 = "0"+ String(mo);} else { mo1 = String(mo);};
+  uint8_t d = ubxDataStruct->day; // Print the year
+  String d1;
+    if (d < 10) {d1 = "0"+ String(d);} else { d1 = String(d);};
+  uint8_t h = ubxDataStruct->hour; // Print the hours
+  String h1;
+    if (h < 10) {h1 = "0"+ String(h);} else { h1 = String(h);};
+  uint8_t m = ubxDataStruct->min; // Print the minutes
+  String m1;
+    if (m < 10) {m1 = "0"+ String(m);} else { m1 = String(m);};
+  uint8_t s = ubxDataStruct->sec; // Print the seconds
+  String s1;
+    if (s < 10) {s1 = "0"+ String(s);} else { s1 = String(s);};
+  unsigned long millisecs = ubxDataStruct->iTOW % 1000; // Print the milliseconds
+  String a = ":";
+  String b = "-";
+  String date1 = y+b+mo1+b+d1+" ";
+  String time1 = h1 +a+ m1 +a+ s1 + "." + millisecs;
+  object["datetime"] = "'"+date1+time1+"'"; // print date time for postgresql data injection.
+
+  double latitude = ubxDataStruct->lat; // Print the latitude
+  doc["lat"] = latitude / 10000000.0;
+
+  double longitude = ubxDataStruct->lon; // Print the longitude
+  doc["lon"] = longitude / 10000000.0;
+
+  double elevation = ubxDataStruct->height; // Print the height above mean sea level
+  doc["elv_m"] = elevation / 1000.0;
+
+  double altitude = ubxDataStruct->hMSL; // Print the height above mean sea level
+  doc["alt_m"] = altitude / 1000.0;
+
+  uint8_t fixType = ubxDataStruct->fixType; // Print the fix type
+  // 0 none/1 Dead reckoning/2 2d/3 3d/4 GNSS + Dead reckoning/ 5 time only
+  doc["fix"] = fixType;
+
+  uint8_t carrSoln = ubxDataStruct->flags.bits.carrSoln; // Print the carrier solution
+  // 0 none/1 floating/ 2 Fixed
+  doc["car"] = carrSoln;
+
+  uint32_t hAcc = ubxDataStruct->hAcc; // Print the horizontal accuracy estimate
+  doc["hacc_mm"] = hAcc;
+
+  uint32_t vAcc = ubxDataStruct->vAcc; // Print the vertical accuracy estimate
+  doc["vacc_mm"] = vAcc;
+
+  uint8_t numSV = ubxDataStruct->numSV; // Print tle number of SVs used in nav solution
+  doc["numsv"] = numSV;
+
+  serializeJson(doc, Serial);
+  Serial.println();
+
+  //Send position to MQTT broker
+  String output = "JSON = ";
+  String msg;
+  serializeJson(doc, msg);
+  mqtt.publish(mqtttopic, msg.c_str());
+  Serial.println("Message send");
+
+  //BAT
+  if (millis() - timeStamp > BAT_PERIOD*1000) {
+    timeStamp = millis();
+    uint16_t v = analogRead(ADC_PIN);
+    float battery_voltage = ((float)v / 4095.0) * 2.0 * 3.3 * (vref / 1000.0);
+    String voltage = "'"+date1+time1+"'" + ","+ matUuid + ","+String(battery_voltage);
+
+    // When connecting USB, the battery detection will return 0,
+    // because the adc detection circuit is disconnected when connecting USB
+    Serial.println(voltage);
+    if (battery_voltage == 0.00 ) {
+        Serial.println("USB is connected, please disconnect USB.");
+    }
+    mqtt.publish(mqttbat, voltage.c_str());
+    Serial.println("Message send");
+  }
+
 }
