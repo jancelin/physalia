@@ -44,11 +44,6 @@ int ACQUISION_PERIOD_4G = 120; // Temps ( en seconde ) pendant lequel on va cher
 // BAT
 int BAT_PERIOD = 10;    // Interval pour envoi de l'état de la batterie (en seconde )
 
-// HARDWARE CONNECTION
-#define pin_GNSS 33     // ANALOG PIN 33 ( Relais 1 )
-#define pin_GSM 32        // ANALOG PIN 33 ( Relais 2 )
-#define LDR 2  // composante photoresistor sur la pin GPI02
-
 //Your WiFi credentials
-//const char ssid[] = "blablabla";
+//const char ssid[] = "blabla";
 //const char password[] = "12345678";
