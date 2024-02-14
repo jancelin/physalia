@@ -29,16 +29,16 @@ PHYSALIA
 #include <Wire.h>
 #include <SPI.h>
 
-// GNSS V+ SWITCH
-#define pin_GNSS 32     // ANALOG PIN 33 ( Relais 1 )
+// GNSS RELAY power control
+#define pin_GNSS 32
 // GSM SIM7600G
-#define UART_BAUD               115200
-#define PIN_TX                  27
-#define PIN_RX                  26
-#define PWR_PIN                 4
-#define LED_PIN                 12
-#define POWER_PIN               25
-#define IND_PIN                 36
+#define UART_BAUD 115200
+#define PIN_TX    27
+#define PIN_RX    26
+#define PWR_PIN   4
+#define LED_PIN   12
+#define POWER_PIN 25
+#define IND_PIN   36
 // BAT
 #include <esp_adc_cal.h>
 #define ADC_PIN     4
