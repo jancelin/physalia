@@ -41,7 +41,7 @@ PHYSALIA
 #define IND_PIN                 36
 // BAT
 #include <esp_adc_cal.h>
-#define ADC_PIN     35
+#define ADC_PIN     4
 int vref = 1100;
 uint32_t timeStamp = 0;
 
@@ -844,18 +844,21 @@ void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
   //BAT
   if (millis() - timeStamp > BAT_PERIOD*1000) {
     timeStamp = millis();
-    uint16_t v = analogRead(ADC_PIN);
-    float battery_voltage = ((float)v / 4095.0) * 2.0 * 3.3 * (vref / 1000.0);
-    String voltage = "'"+date1+time1+"'" + ","+ matUuid + ","+String(battery_voltage);
+    uint8_t  chargeState = -99;
+    int8_t   percent     = -99;
+    uint16_t milliVolts  = -9999;
+    modem.getBattStats(chargeState, percent, milliVolts);
 
-    // When connecting USB, the battery detection will return 0,
-    // because the adc detection circuit is disconnected when connecting USB
-    Serial.println(voltage);
-    if (battery_voltage == 0.00 ) {
-        Serial.println("USB is connected, please disconnect USB.");
+    Serial.print("MilliVolts :");  Serial.println(milliVolts);
+    float mv = milliVolts / 1000.0F;
+    //mise en forme pour insertion dans DB postgresql
+    String voltage = "'"+date1+time1+"'" + ","+ matUuid + ","+String(mv);
+    if (mv == 0.00 ) {
+        Serial.println("Bad battery value");
     }
-    mqtt.publish(mqttbat, voltage.c_str());
-    Serial.println("Message send");
+    else {
+    mqtt.publish(mqttbat, voltage.c_str()); //pub lication sur le calnal mqtt
+    Serial.println("Voltage send");
+    }
   }
-
 }
