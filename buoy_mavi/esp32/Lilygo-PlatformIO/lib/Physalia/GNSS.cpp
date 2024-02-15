@@ -28,14 +28,14 @@ void GNSS::setup(){
     Serial.println(F("u-blox module connected"));
 
     this->myGNSS.setI2COutput(COM_TYPE_UBX | COM_TYPE_NMEA);                                //Set the I2C port to output both NMEA and UBX messages
-    this->myGNSS.setPortInput(COM_PORT_I2C, COM_TYPE_UBX | COM_TYPE_NMEA | COM_TYPE_RTCM3); //Be sure RTCM3 input is enabled. UBX + RTCM3 is not a valid state.
+    this->myGNSS.setI2CInput(COM_TYPE_UBX | COM_TYPE_NMEA | COM_TYPE_RTCM3); //Be sure RTCM3 input is enabled. UBX + RTCM3 is not a valid state.
     this->myGNSS.setDGNSSConfiguration(SFE_UBLOX_DGNSS_MODE_FIXED); // Set the differential mode - ambiguities are fixed whenever possible
     this->myGNSS.setNavigationFrequency(this->GNSS_FREQ); //Set output in Hz.
 
     // Set the Main Talker ID to "GP". The NMEA GGA messages will be GPGGA instead of GNGGA
     this->myGNSS.setMainTalkerID(SFE_UBLOX_MAIN_TALKER_ID_GP);
     this->myGNSS.setNMEAGPGGAcallbackPtr(&GNSS::physalia_pushGPGGA ); // Set up the callback for GPGGA
-    this->myGNSS.enableNMEAMessage(UBX_NMEA_GGA, COM_PORT_I2C, 60); // Tell the module to output GGA every 60 seconds
+    this->myGNSS.setVal8(UBLOX_CFG_MSGOUT_NMEA_ID_GGA_I2C, 60); // Tell the module to output GGA every 60 seconds
     this->myGNSS.setAutoPVTcallbackPtr(&GNSS::physalia_printPVTdata); // Enable automatic NAV PVT messages with callback to printPVTdata so we can watch the carrier solution go to fixed
     //myGNSS.saveConfiguration(VAL_CFG_SUBSEC_IOPORT | VAL_CFG_SUBSEC_MSGCONF); //Optional: Save the ioPort and message settings to NVM
 
