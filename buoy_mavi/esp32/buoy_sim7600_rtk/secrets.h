@@ -14,7 +14,7 @@ PHYSALIA
 const char matUuid[] = "'TESTv3'";
 
 //RTK connection
-const char mountPoint[] = "LIENSS"; //The mount point you want to get data from
+const char mountPoint[] = "CT"; //The mount point you want to get data from
 const char casterHost[] = "caster.centipede.fr";
 const uint16_t casterPort = 2101 ;
 const char casterUser[] = "mavi";
@@ -30,11 +30,11 @@ const char* mqtttopic = "buoy/mavi";
 const char* mqttbat = "buoy/bat";
 
 // GNSS acquisition Frequency ( Hz )
-int GNSS_FREQ = 2;
+int GNSS_FREQ = 1;
 
 // DEEP SLEEP CONFIGURATION
 bool DEEP_SLEEP_ACTIVATED = true;     // True = DeepSleep sinon DeepSleep ( off ) captation en continue
-int TIME_TO_SLEEP = 30; // temps de repos en deepsleep.
+int TIME_TO_SLEEP = 480; // temps de repos en deepsleep.
 int RTK_ACQUISITION_PERIOD = 120; // Temps pendant lequel on doit capter de la donnée en RTK ( secondes )
 int RTK_MAX_RESEARCH = 120; // Temps max pendant lequel le dispositif recherche du RTK ( secondes )
 #define uS_TO_S_FACTOR 1000000
