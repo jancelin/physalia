@@ -48,8 +48,7 @@ class Modem{
         //StreamDebugger debugger(SerialAT, Serial);
     private:
         TinyGsmClient ntripClient; 
+        TinyGsmClient mqttClient;
         TinyGsm* modem;
-
 };
-
 #endif

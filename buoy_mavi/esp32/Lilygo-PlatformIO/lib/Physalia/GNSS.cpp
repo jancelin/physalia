@@ -46,6 +46,10 @@ void GNSS::process(){
 
 }
 
+StaticJsonDocument<256> GNSS::getDocJson() {
+    return GNSS::doc;
+};
+
 //GNSS=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Callback: physalia_pushGPGGA will be called when new GPGGA NMEA data arrives
 // See u-blox_structs.h for the full definition of NMEA_GGA_data_t

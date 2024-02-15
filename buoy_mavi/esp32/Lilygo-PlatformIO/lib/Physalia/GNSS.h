@@ -17,11 +17,12 @@ class GNSS{
         void process();
         static void physalia_pushGPGGA(NMEA_GGA_data_t *nmeaData);
         static void physalia_printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct);
+        StaticJsonDocument<256> getDocJson();
 
     private:
         static Modem modem;
         static StaticJsonDocument<256> doc;
-
+    
         int pin_GNSS;
         SFE_UBLOX_GNSS myGNSS;
         int GNSS_FREQ;

@@ -1,12 +1,14 @@
 #include "Modem.h"
 
 Modem::Modem(){
-
     // Initialisation de modem dans la liste d'initialisation
     this->modem = new TinyGsm(SerialAT);
-    this->modem->begin();
     // Initialisez ntripClient avec la méthode begin() après la création de l'objet modem
-    ntripClient = TinyGsmClient(*this->modem, 2);}
+    this->modem->begin();
+
+    ntripClient = TinyGsmClient(*this->modem, 2);
+    mqttClient = TinyGsmClient (*this->modem,0);
+    }
 
 Modem::~Modem() {
     delete this->modem;
