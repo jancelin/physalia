@@ -1,5 +1,8 @@
 #include "GNSS.h"
 #include <Wire.h>
+#define transmitLocation false
+
+Modem GNSS::modem;
 
 GNSS::GNSS(){
     this->pin_GNSS = 32;
@@ -52,15 +55,16 @@ void GNSS::process(){
 //        |              |          |
 void GNSS::physalia_pushGPGGA(NMEA_GGA_data_t *nmeaData)
 {
-  //Provide the caster with our current position as needed
-  // if ((ntripClient.connected() == true) && (transmitLocation == true))
-  // {
-  //   Serial.print(F("Pushing GGA to server: "));
-  //   Serial.print((const char *)nmeaData->nmea); // .nmea is printable (NULL-terminated) and already has \r\n on the end
 
-  //   //Push our current GGA sentence to caster
-  //   ntripClient.print((const char *)nmeaData->nmea);
-  // }
+  //Provide the caster with our current position as needed
+  if ((GNSS::modem.connected() == true) && (transmitLocation == true))
+  {
+    Serial.print(F("Pushing GGA to server: "));
+    Serial.print((const char *)nmeaData->nmea); // .nmea is printable (NULL-terminated) and already has \r\n on the end
+
+    //Push our current GGA sentence to caster
+    GNSS::modem.print(reinterpret_cast<const char*>(nmeaData->nmea));
+  }
 }
 
 

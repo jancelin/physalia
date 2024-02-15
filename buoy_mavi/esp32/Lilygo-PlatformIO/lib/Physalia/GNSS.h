@@ -7,6 +7,7 @@
 #include <SparkFun_u-blox_GNSS_Arduino_Library.h> //http://librarymanager/All#SparkFun_u-blox_GNSS
 #include <Wire.h>
 #include "config.h"
+#include "Modem.h"
 
 class GNSS{
     public:
@@ -18,6 +19,7 @@ class GNSS{
         //void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct);
 
     private:
+        static Modem modem;
         int pin_GNSS;
         SFE_UBLOX_GNSS myGNSS;
         int GNSS_FREQ;
