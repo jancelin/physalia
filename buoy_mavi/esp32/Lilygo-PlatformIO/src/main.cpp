@@ -25,9 +25,9 @@ void setup() {
 }
 
 void loop() {
-  gnss.process();
+  gnss.process(); // Check if Ubx arrived, if so update doc attribut;
   modem.process();
   ntripClient.process();
-  mqttClient.process();
+  mqttClient.process(); 
   deepSleep.process();
 }
