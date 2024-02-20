@@ -156,7 +156,7 @@ void setup()
   
   Serial.println("SETUP - Init Relay");
   pinMode(pin_GNSS,OUTPUT);
-  digitalWrite(pin_GNSS, LOW);
+  digitalWrite(pin_GNSS, HIGH);
 
   // Deep sleep 
   //Affiche la source du reveil
@@ -173,6 +173,66 @@ void setup()
     Serial.println("SETUP - DeepSleep mode disactivated");
   }
 
+//GSM-----------------------------
+  delay(10);
+  SerialAT.begin(UART_BAUD, SERIAL_8N1, PIN_RX, PIN_TX);
+  // Onboard LED light, it can be used freely
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN,HIGH);
+
+  // POWER_PIN : This pin controls the power supply of the SIM7600
+  pinMode(POWER_PIN, OUTPUT);
+  digitalWrite(POWER_PIN, HIGH);
+
+  pinMode(PWR_PIN, OUTPUT);
+  digitalWrite(PWR_PIN, HIGH);
+  delay(500);
+  digitalWrite(PWR_PIN, LOW);
+
+  Serial.println("\nWait...");
+  delay(1000);
+
+    // Restart takes quite some time
+  // To skip it, call init() instead of restart()
+  Serial.println("Initializing modem...");
+  if (!modem.init()) {
+    Serial.println("Failed to restart modem, attempting to continue without restarting");
+  }
+
+#if TINY_GSM_USE_GPRS && defined TINY_GSM_MODEM_XBEE
+    // The XBee must run the gprsConnect function BEFORE waiting for network!
+    modem.gprsConnect(apn, gprsUser, gprsPass);
+#endif
+
+    Serial.print("Waiting for network...");
+    if (!modem.waitForNetwork()) {
+        Serial.println(" fail");
+        delay(10000);
+        return;
+    }
+    Serial.println(" success");
+
+    if (modem.isNetworkConnected()) {
+        Serial.println("Network connected");
+    }
+
+#if TINY_GSM_USE_GPRS
+    // GPRS connection parameters are usually set after network registration
+    Serial.print(F("Connecting to "));
+    Serial.print(apn);
+    if (!modem.gprsConnect(apn, gprsUser, gprsPass)) {
+        Serial.println(" fail");
+        delay(10000);
+        return;
+    }
+    Serial.println(" success");
+
+    if (modem.isGprsConnected()) {
+        Serial.println("GPRS connected");
+    }
+#endif
+  //GSM---------------------------------
+
   //BAT----------------------------
   esp_adc_cal_characteristics_t adc_chars;
   esp_adc_cal_value_t val_type = esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, 1100, &adc_chars);    //Check type of calibration value used to characterize ADC
@@ -185,88 +245,7 @@ void setup()
       Serial.println("Default Vref: 1100mV");
   }
 
-  //GSM-----------------------------
-  delay(10);
-  // Onboard LED light, it can be used freely
-  pinMode(LED_PIN, OUTPUT);
-  digitalWrite(LED_PIN,LOW);
-
-  // POWER_PIN : This pin controls the power supply of the SIM7600
-  pinMode(POWER_PIN, OUTPUT);
-  digitalWrite(POWER_PIN, HIGH);
-
-  pinMode(PWR_PIN, OUTPUT);
-  digitalWrite(PWR_PIN, HIGH);
-  delay(500);
-  digitalWrite(PWR_PIN, LOW);
-  // IND_PIN: It is connected to the SIM7600 status Pin,
-  // through which you can know whether the module starts normally.
-  pinMode(IND_PIN, INPUT);
-
-  Serial.println("\nWait...");
-  SerialAT.begin(UART_BAUD, SERIAL_8N1, PIN_RX, PIN_TX);
-  delay(3000);
-
-  // Restart takes quite some time
-  // To skip it, call init() instead of restart()
-  DBG("Initializing modem...");
-  modem.restart();
-  // modem.init();
-  String modemInfo = modem.getModemInfo();
-  Serial.print("Modem Info: ");
-  Serial.println(modemInfo);
-  #if TINY_GSM_USE_GPRS
-    // Unlock your SIM card with a PIN if needed
-    if (GSM_PIN && modem.getSimStatus() != 3) { modem.simUnlock(GSM_PIN); }
-  #endif
-
-  #if TINY_GSM_USE_GPRS && defined TINY_GSM_MODEM_XBEE
-      // The XBee must run the gprsConnect function BEFORE waiting for network!
-      modem.gprsConnect(apn, gprsUser, gprsPass);
-  #endif
-
-  Serial.print("Waiting for network...");
-  int lastNetworkAttemps = millis();
-  int now = millis(); 
-
-  // Testing 4G connection during ACQUISION_PERIOD_4G ( second ), if not connected after that, DeepSleep is launched
-  while(!modem.waitForNetwork() && ( now - lastNetworkAttemps < ACQUISION_PERIOD_4G ) ) {
-  //if (!modem.waitForNetwork()) {
-    Serial.println("fail to find network, waiting 10sec before retry");
-    delay(10000);
-    now = millis();
-    //return;
-  }
-
-  if ( DEEP_SLEEP_ACTIVATED ) {
-    if ( now - lastNetworkAttemps < ACQUISION_PERIOD_4G ) {
-      Serial.println(" success");
-    }
-    else {
-    Serial.println("Max period attempted to connect to 4G, DeepSleep activated");
-    modem_off();
-    Serial.println("Modem Off; waiting 2 sec");
-    esp_deep_sleep_start();
-    }
-  }
-
-  if (modem.isNetworkConnected()) { Serial.println("Network connected"); }
-
-  #if TINY_GSM_USE_GPRS
-    // GPRS connection parameters are usually set after network registration
-    Serial.print(F("Connecting to "));
-    Serial.print(apn);
-    if (!modem.gprsConnect(apn, gprsUser, gprsPass)) {
-      Serial.println(" fail");
-      delay(10000);
-      return;
-    }
-    Serial.println(" success");
-
-    if (modem.isGprsConnected()) { Serial.println("GPRS connected"); }
-  #endif
-  //GSM---------------------------------
-
+  
   //GNSS=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
   Serial.println(F("NTRIP testing"));
 
@@ -319,6 +298,9 @@ void setup()
 
 void loop()
 {
+
+
+
   long now = millis();
   // Check if error loop 
   if ( lastState !=0 && now - lastState > RTK_ACQUISITION_PERIOD*1000*1.2 ){ 
@@ -405,52 +387,36 @@ void loop()
 
     mqtt.loop();
   }
-
-
-  //GSM-------------------------------
-  // Make sure we're still registered on the network
-  if (!modem.isNetworkConnected()) {
-    lastNetworkAttemps = millis();
-    Serial.println("LOOP - Network disconnected");
-
-    // Testing 4G connection during ACQUISION_PERIOD_4G ( second ), if not connected after that, DeepSleep is launched
-    while(!modem.waitForNetwork() && ( now - lastNetworkAttemps < ACQUISION_PERIOD_4G ) ) {
-      Serial.println("LOOP - fail to find network, waiting 10sec before retry");
-      delay(10000);
-      now = millis();
-    }
-
-    if (modem.isNetworkConnected()) {
-      Serial.println("LOOP - Network re-connected");
-    } 
-    if ( DEEP_SLEEP_ACTIVATED ) {
-      if ( now - lastNetworkAttemps < ACQUISION_PERIOD_4G ) {
-        Serial.println("LOOP - Network re-connected before max attempts");
-      }
-      else {
-        Serial.println("LOOP - Max period attempted to connect to 4G, DeepSleep activated");
-        modem_off();
-        Serial.println("LOOP - Modem Off; waiting 2 sec");
-        esp_deep_sleep_start();
-      }
-    }
-
-    #if TINY_GSM_USE_GPRS
-      // and make sure GPRS/EPS is still connected
-      if (!modem.isGprsConnected()) {
-        Serial.println("GPRS disconnected!");
-        Serial.print(F("Connecting to "));
-        Serial.print(apn);
-        if (!modem.gprsConnect(apn, gprsUser, gprsPass)) {
-          Serial.println(" fail");
-          delay(10000);
-          return;
+    //GSM-------------------------------
+    // Make sure we're still registered on the network
+    if (!modem.isNetworkConnected()) {
+        Serial.println("Network disconnected");
+        if (!modem.waitForNetwork(180000L, true)) {
+            Serial.println(" fail");
+            delay(10000);
+            return;
         }
-        if (modem.isGprsConnected()) { Serial.println("GPRS reconnected"); }
-      }
-    #endif
-  }
+        if (modem.isNetworkConnected()) {
+            Serial.println("Network re-connected");
+        }
 
+#if TINY_GSM_USE_GPRS
+        // and make sure GPRS/EPS is still connected
+        if (!modem.isGprsConnected()) {
+            Serial.println("GPRS disconnected!");
+            Serial.print(F("Connecting to "));
+            Serial.print(apn);
+            if (!modem.gprsConnect(apn, gprsUser, gprsPass)) {
+                Serial.println(" fail");
+                delay(10000);
+                return;
+            }
+            if (modem.isGprsConnected()) {
+                Serial.println("GPRS reconnected");
+            }
+        }
+#endif
+    }
   //DeepSleep configuration
     if ( lastState == 0 ) {
         Serial.println("lastState == 0 Valued to " + String(now) );
