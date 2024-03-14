@@ -33,6 +33,8 @@ const char* mqttbat = "buoy/bat";
 int GNSS_FREQ = 1;
 
 // DEEP SLEEP CONFIGURATION
+RTC_DATA_ATTR int bootCount = 0;    // Compte le nombre de reboot. 
+int nb_DeepSleep_until_Reboot = 10; // nb de deepsleep avant reboot complet.
 bool DEEP_SLEEP_ACTIVATED = true;     // True = DeepSleep sinon DeepSleep ( off ) captation en continue
 int TIME_TO_SLEEP = 480; // temps de repos en deepsleep.
 int RTK_ACQUISITION_PERIOD = 120; // Temps pendant lequel on doit capter de la donnée en RTK ( secondes )

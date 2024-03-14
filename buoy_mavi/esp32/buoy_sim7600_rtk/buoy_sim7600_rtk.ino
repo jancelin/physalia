@@ -159,13 +159,20 @@ void setup()
   digitalWrite(pin_GNSS, HIGH);
 
   // Deep sleep 
-  //Affiche la source du reveil
   print_wakeup_reason();
+
+  if ( bootCount == nb_DeepSleep_until_Reboot ) {
+    Serial.println("Reboot complet aprés " + String(bootCount) + " deepSleep" );
+    Serial.println("Bye bye !");
+    ESP.restart();
+  }
+  //Affiche la source du reveil
   Serial.print("SETUP - DEEPSLEEP State : ");
   Serial.println(DEEP_SLEEP_ACTIVATED);
   if ( DEEP_SLEEP_ACTIVATED ) {
     Serial.println("SETUP - Sleep mode configured to : " + String(TIME_TO_SLEEP) + " seconds" );
     esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+    Serial.println("SETUP - Reboot after " + String(nb_DeepSleep_until_Reboot) + " deepSleep" );
     Serial.println("SETUP - GNSS acquisition period configured to : " + String(RTK_ACQUISITION_PERIOD) + " seconds" );
     // Configuration de WakeUp avec une photorésistance. 
     esp_sleep_enable_ext0_wakeup(GPIO_NUM_2, HIGH);
@@ -439,6 +446,8 @@ void loop()
 void print_wakeup_reason(){
    Serial.println("-----------------");
    Serial.println(" - WAKEUP REASON ");
+   bootCount++;
+   Serial.println(" - Boot count = " + (String)bootCount);
    esp_sleep_wakeup_cause_t source_reveil;
    source_reveil = esp_sleep_get_wakeup_cause();
 
