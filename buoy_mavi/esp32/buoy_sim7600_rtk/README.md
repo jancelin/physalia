@@ -16,5 +16,24 @@ https://github.com/Xinyuan-LilyGO/LilyGo-T-PCIE/tree/master
 
 ![image](https://github.com/jancelin/physalia/assets/6421175/4a6827f4-2eff-4e9a-9c4c-cf8777e0086d)
 
+### Install Wine for U-Center
+
+  sudo dpkg --add-architecture i386 
+  sudo mkdir -pm755 /etc/apt/keyrings
+  sudo wget -O /etc/apt/keyrings/winehq-archive key https://dl.winehq.org/wine-builds/winehq.key
+  sudo wget -NP /etc/apt/sources.list.d/ https://dl.winehq.org/wine-builds/ubuntu/dists/jammy/winehq-jammy.sources
+  sudo apt update
+  sudo apt install --install-recommends winehq-stable
+
+// Config Wine pour redirection de port du ttyACM0 -> com33 ( détectable dans u-center )
+
+ls -l /dev
+cd .wine/dosdevices/
+ls
+ln -s /dev/ttyACM0 com33
+
+
+### Download u-Center
+https://content.u-blox.com/sites/default/files/2022-05/UBX_F9_100_HPG132.df73486d99374142f3aabf79b7178f48.bin
 
 

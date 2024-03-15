@@ -211,17 +211,35 @@ void setup()
     modem.gprsConnect(apn, gprsUser, gprsPass);
 #endif
 
-    Serial.print("Waiting for network...");
-    if (!modem.waitForNetwork()) {
-        Serial.println(" fail");
-        delay(10000);
-        return;
-    }
-    Serial.println(" success");
+  Serial.print("Waiting for network...");
+  int lastNetworkAttemps = millis();
+  int now = millis(); 
 
-    if (modem.isNetworkConnected()) {
-        Serial.println("Network connected");
+  // Testing 4G connection during ACQUISION_PERIOD_4G ( second ), if not connected after that, DeepSleep is launched
+  while(!modem.waitForNetwork() && ( now - lastNetworkAttemps < ACQUISION_PERIOD_4G ) ) {
+  //if (!modem.waitForNetwork()) {
+    Serial.println("fail to find network, waiting 10sec before retry");
+    delay(10000);
+    now = millis();
+    //return;
+  }
+
+  if ( DEEP_SLEEP_ACTIVATED ) {
+    if ( now - lastNetworkAttemps < ACQUISION_PERIOD_4G ) {
+      Serial.println(" success");
     }
+    else {
+      Serial.println("Max period attempted to connect to 4G, DeepSleep activated");
+      modem_off();
+      Serial.println("Modem Off; waiting 2 sec");
+      esp_deep_sleep_start();
+    }
+  }
+
+
+  if (modem.isNetworkConnected()) {
+      Serial.println("Network connected");
+  }
 
 #if TINY_GSM_USE_GPRS
     // GPRS connection parameters are usually set after network registration
@@ -397,15 +415,31 @@ void loop()
     //GSM-------------------------------
     // Make sure we're still registered on the network
     if (!modem.isNetworkConnected()) {
-        Serial.println("Network disconnected");
-        if (!modem.waitForNetwork(180000L, true)) {
-            Serial.println(" fail");
-            delay(10000);
-            return;
+      lastNetworkAttemps = millis();
+      Serial.println("LOOP - Network disconnected");
+
+      // Testing 4G connection during ACQUISION_PERIOD_4G ( second ), if not connected after that, DeepSleep is launched
+      while(!modem.waitForNetwork() && ( now - lastNetworkAttemps < ACQUISION_PERIOD_4G ) ) {
+        Serial.println("LOOP - fail to find network, waiting 10sec before retry");
+        delay(10000);
+        now = millis();
+      }
+
+      if (modem.isNetworkConnected()) {
+          Serial.println("LOOP - Network re-connected");
+      }
+
+      if ( DEEP_SLEEP_ACTIVATED ) {
+        if ( now - lastNetworkAttemps < ACQUISION_PERIOD_4G ) {
+          Serial.println("LOOP - Network re-connected before max attempts");
         }
-        if (modem.isNetworkConnected()) {
-            Serial.println("Network re-connected");
+        else {
+          Serial.println("LOOP - Max period attempted to connect to 4G, DeepSleep activated");
+          modem_off();
+          Serial.println("LOOP - Modem Off; waiting 2 sec");
+          esp_deep_sleep_start();
         }
+      }
 
 #if TINY_GSM_USE_GPRS
         // and make sure GPRS/EPS is still connected
