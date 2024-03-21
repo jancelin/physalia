@@ -275,12 +275,30 @@ void setup()
   Serial.println(F("NTRIP testing"));
 
   Wire.begin(); //Start I2C
+  now = millis();
+  lastNetworkAttemps = millis();
 
-  while (myGNSS.begin() == false) //Connect to the Ublox module using Wire port
+  while (myGNSS.begin() == false && ( now - lastNetworkAttemps < ACQUISION_PERIOD_GNSS ) ) //Connect to the Ublox module using Wire port
   {
     Serial.println(F("u-blox GPS not detected at default I2C address. Please check wiring."));
     delay(2000);
+    Serial.println("DELAY now = " + (String)now + " - lastNetwork = " + (String)lastNetworkAttemps );
+
+    now = millis();
   }
+
+  if ( DEEP_SLEEP_ACTIVATED ) {
+    if ( now - lastNetworkAttemps < ACQUISION_PERIOD_GNSS ) {
+      Serial.println(" success");
+    }
+    else {
+      Serial.println("Max period attempted to connect to GNSS, DeepSleep activated");
+      modem_off();
+      Serial.println("Modem Off; waiting 2 sec");
+      esp_deep_sleep_start();
+    }
+  }
+
   Serial.println(F("u-blox module connected"));
 
   myGNSS.setI2COutput(COM_TYPE_UBX | COM_TYPE_NMEA); //Set the I2C port to output both NMEA and UBX messages
@@ -299,7 +317,10 @@ void setup()
   mqtt.setServer(mqttServer, mqttPort);
   mqtt.setCallback(callback);
 
-  while (!mqtt.connected()) {
+  now = millis();
+  lastNetworkAttemps = millis();
+
+  while (!mqtt.connected() && ( now - lastNetworkAttemps < ACQUISION_PERIOD_MQTT )) {
     Serial.println("Connecting to MQTT...\n");
     //if (mqtt.connect("ESP32Client", mqttUser, mqttPassword )) {
     //add a uuid for each rover https://github.com/knolleary/pubsubclient/issues/372#issuecomment-352086415
@@ -310,6 +331,19 @@ void setup()
       Serial.print(mqtt.state());
       delay(1500);
       lastReconnectAttempt = 0;
+      now = millis();
+    }
+  }
+
+  if ( DEEP_SLEEP_ACTIVATED ) {
+    if ( now - lastNetworkAttemps < ACQUISION_PERIOD_MQTT ) {
+      Serial.println(" success");
+    }
+    else {
+      Serial.println("Max period attempted to connect to MQTT, DeepSleep activated");
+      modem_off();
+      Serial.println("Modem Off; waiting 2 sec");
+      esp_deep_sleep_start();
     }
   }
 
