@@ -35,12 +35,7 @@ const char* mqttPassword = "";
 const char* mqtttopic = "buoy/physalia2-geo";
 const char* mqttbat = "buoy/physalia2-bat";
 
-// GNSS acquisition Frequency ( Hz )
-//int GNSS_FREQ = 1;
-
 // DEEP SLEEP CONFIGURATION
-//RTC_DATA_ATTR int bootCount = 0;    // Compte le nombre de reboot. a réactiver dans le .ino bootCount++;
-//int nb_DeepSleep_until_Reboot = 10; // nb de deepsleep avant reboot complet. a réactiver dans le .ino: void setupDeepSleep()
 bool DEEP_SLEEP_ACTIVATED = true;     // True = DeepSleep sinon DeepSleep ( off ) captation en continue
 int TIME_TO_SLEEP = 120; // temps de repos en deepsleep.
 int RTK_ACQUISITION_PERIOD = 20; //120; // Temps ( en seconde ) pendant lequel on doit capter de la donnée en RTK ( secondes )

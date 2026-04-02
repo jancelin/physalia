@@ -115,7 +115,11 @@ HardwareSerial GNSSSerial(2);
 // -------------------------------------------------------------------------------------------------
 
 static const uint32_t TASK_WDT_TIMEOUT_S = 60;
+static const uint8_t FAILURE_REBOOT_THRESHOLD = 3;
 static bool taskWdtEnabled = false;
+
+RTC_DATA_ATTR uint32_t bootCount = 0;
+RTC_DATA_ATTR uint8_t consecutiveFailureCount = 0;
 
 int vref = 1100;
 uint32_t timeStamp = 0;
@@ -193,6 +197,8 @@ void setupGnss();
 void setupTaskWatchdog();
 void registerCurrentTaskToWatchdog(const char *taskName);
 void feedTaskWatchdog();
+void resetFailureCycleCounter(const char *reason);
+void handleFailureCycleAndSleep(const char *stage);
 void maintainNetwork();
 void maintainNtrip();
 void processGnssSerial();
@@ -265,6 +271,40 @@ void feedTaskWatchdog()
   (void)esp_task_wdt_reset();
 }
 
+void resetFailureCycleCounter(const char *reason)
+{
+  if (consecutiveFailureCount == 0) {
+    return;
+  }
+
+  LOGF(1, "Failure cycle counter reset (%s): %u -> 0\n",
+       reason ? reason : "success",
+       static_cast<unsigned>(consecutiveFailureCount));
+  consecutiveFailureCount = 0;
+}
+
+void handleFailureCycleAndSleep(const char *stage)
+{
+  ++consecutiveFailureCount;
+  LOGF(1,
+       "Failure cycle recorded at stage %s: %u/%u\n",
+       stage ? stage : "unknown",
+       static_cast<unsigned>(consecutiveFailureCount),
+       static_cast<unsigned>(FAILURE_REBOOT_THRESHOLD));
+
+  if (consecutiveFailureCount >= FAILURE_REBOOT_THRESHOLD) {
+    LOGLN(1, "Failure threshold reached, forcing full ESP restart");
+    delay(100);
+    ESP.restart();
+  }
+
+  if (DEEP_SLEEP_ACTIVATED) {
+    modem_off();
+    delay(2000);
+    esp_deep_sleep_start();
+  }
+}
+
 // -------------------------------------------------------------------------------------------------
 // Setup
 // -------------------------------------------------------------------------------------------------
@@ -316,11 +356,13 @@ void setup()
     delay(1500);
   }
 
+  if (mqtt.connected()) {
+    resetFailureCycleCounter("startup complete");
+  }
+
   if (DEEP_SLEEP_ACTIVATED && !mqtt.connected()) {
     LOGLN(1, "Max period attempted to connect to MQTT, DeepSleep activated");
-    modem_off();
-    delay(2000);
-    esp_deep_sleep_start();
+    handleFailureCycleAndSleep("MQTT");
   }
 
   while (Serial.available()) {
@@ -482,9 +524,7 @@ void setupGsm()
   if (!modem.isNetworkConnected()) {
     LOGLN(1, "Network connection failed");
     if (DEEP_SLEEP_ACTIVATED) {
-      modem_off();
-      delay(2000);
-      esp_deep_sleep_start();
+      handleFailureCycleAndSleep("4G");
     }
   } else {
     LOGLN(1, "Network connected");
@@ -497,9 +537,7 @@ void setupGsm()
   if (!modem.gprsConnect(apn, gprsUser, gprsPass)) {
     LOGLN(1, " fail");
     if (DEEP_SLEEP_ACTIVATED) {
-      modem_off();
-      delay(2000);
-      esp_deep_sleep_start();
+      handleFailureCycleAndSleep("GPRS");
     }
   }
   LOGLN(1, " success");
@@ -528,9 +566,7 @@ void maintainNetwork()
     if (!modem.isNetworkConnected()) {
       if (DEEP_SLEEP_ACTIVATED) {
         LOGLN(1, "LOOP - Max period attempted to connect to 4G, DeepSleep activated");
-        modem_off();
-        delay(2000);
-        esp_deep_sleep_start();
+        handleFailureCycleAndSleep("4G");
       }
     } else {
       LOGLN(1, "LOOP - Network re-connected");
@@ -605,9 +641,7 @@ void setupGnss()
   if (!receivedSomething) {
     LOGLN(1, "No UM980 output detected within GNSS acquisition window");
     if (DEEP_SLEEP_ACTIVATED) {
-      modem_off();
-      delay(2000);
-      esp_deep_sleep_start();
+      handleFailureCycleAndSleep("GNSS");
     }
   } else {
     LOGLN(1, "UM980 output detected");
@@ -1000,18 +1034,11 @@ void setupBatteryCalibration()
 
 void setupDeepSleep()
 {
-  // Reboot périodique uniquement quand le deep-sleep est actif
-  //if (DEEP_SLEEP_ACTIVATED && bootCount == nb_DeepSleep_until_Reboot) {
-  //  LOGF(1, "Reboot complet après %d deepSleep\n", bootCount);
-  //  ESP.restart();
-  //}
-
   LOGF(1, "SETUP - DEEPSLEEP State : %d\n", DEEP_SLEEP_ACTIVATED);
 
   if (DEEP_SLEEP_ACTIVATED) {
     LOGF(1, "SETUP - Sleep mode configured to : %d seconds\n", TIME_TO_SLEEP);
     esp_sleep_enable_timer_wakeup(static_cast<uint64_t>(TIME_TO_SLEEP) * uS_TO_S_FACTOR);
-  //  LOGF(1, "SETUP - Reboot after %d deepSleep\n", nb_DeepSleep_until_Reboot);
     LOGF(1, "SETUP - GNSS acquisition period configured to : %d seconds\n", RTK_ACQUISITION_PERIOD);
     esp_sleep_enable_ext0_wakeup(GPIO_NUM_2, HIGH);
   } else {
@@ -1023,8 +1050,9 @@ void print_wakeup_reason()
 {
   LOGLN(1, "-----------------");
   LOGLN(1, " - WAKEUP REASON ");
-  //bootCount++;
-  //LOGF(1, " - Boot count = %d\n", bootCount);
+  ++bootCount;
+  LOGF(1, " - Boot count = %u\n", static_cast<unsigned>(bootCount));
+  LOGF(1, " - Consecutive failure cycles = %u\n", static_cast<unsigned>(consecutiveFailureCount));
   esp_sleep_wakeup_cause_t source_reveil = esp_sleep_get_wakeup_cause();
 
   switch (source_reveil) {
