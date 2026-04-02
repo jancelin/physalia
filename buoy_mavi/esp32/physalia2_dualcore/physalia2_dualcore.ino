@@ -29,6 +29,7 @@ Architecture (v2 - dual-core):
 #include <ArduinoJson.h>
 #include <PubSubClient.h>
 #include <time.h>
+#include <esp_task_wdt.h>
 
 // FreeRTOS (already included by ESP32 Arduino core)
 #include <freertos/FreeRTOS.h>
@@ -113,6 +114,9 @@ HardwareSerial GNSSSerial(2);
 // Runtime state
 // -------------------------------------------------------------------------------------------------
 
+static const uint32_t TASK_WDT_TIMEOUT_S = 60;
+static bool taskWdtEnabled = false;
+
 int vref = 1100;
 uint32_t timeStamp = 0;
 unsigned long lastReconnectAttempt = 0;
@@ -186,6 +190,9 @@ void setupGsm();
 void setupBatteryCalibration();
 void setupDeepSleep();
 void setupGnss();
+void setupTaskWatchdog();
+void registerCurrentTaskToWatchdog(const char *taskName);
+void feedTaskWatchdog();
 void maintainNetwork();
 void maintainNtrip();
 void processGnssSerial();
@@ -202,6 +209,63 @@ int mapPositionTypeToCarrier(const String &positionType);
 void gnssTask(void *param);
 
 // -------------------------------------------------------------------------------------------------
+// Task watchdog (enabled only in deep-sleep mode)
+// -------------------------------------------------------------------------------------------------
+
+void setupTaskWatchdog()
+{
+  if (!DEEP_SLEEP_ACTIVATED) {
+    return;
+  }
+
+  esp_err_t err = ESP_OK;
+
+#if defined(ESP_IDF_VERSION_MAJOR) && (ESP_IDF_VERSION_MAJOR >= 5)
+  esp_task_wdt_config_t twdtConfig = {};
+  twdtConfig.timeout_ms = TASK_WDT_TIMEOUT_S * 1000UL;
+  twdtConfig.idle_core_mask = 0;
+  twdtConfig.trigger_panic = true;
+  err = esp_task_wdt_init(&twdtConfig);
+  if (err == ESP_ERR_INVALID_STATE) {
+    err = esp_task_wdt_reconfigure(&twdtConfig);
+  }
+#else
+  err = esp_task_wdt_init(TASK_WDT_TIMEOUT_S, true);
+#endif
+
+  if (err != ESP_OK) {
+    LOGF(1, "TWDT init failed: %d\n", static_cast<int>(err));
+    return;
+  }
+
+  taskWdtEnabled = true;
+  registerCurrentTaskToWatchdog("loopTask");
+  LOGLN(1, "TWDT enabled (60 s)");
+}
+
+void registerCurrentTaskToWatchdog(const char *taskName)
+{
+  if (!taskWdtEnabled) {
+    return;
+  }
+
+  const esp_err_t err = esp_task_wdt_add(nullptr);
+  if (err == ESP_OK) {
+    LOGF(1, "TWDT subscribed: %s\n", taskName ? taskName : "current");
+  } else if (err != ESP_ERR_INVALID_ARG) {
+    LOGF(1, "TWDT subscribe failed for %s: %d\n", taskName ? taskName : "current", static_cast<int>(err));
+  }
+}
+
+void feedTaskWatchdog()
+{
+  if (!taskWdtEnabled) {
+    return;
+  }
+  (void)esp_task_wdt_reset();
+}
+
+// -------------------------------------------------------------------------------------------------
 // Setup
 // -------------------------------------------------------------------------------------------------
 
@@ -212,6 +276,8 @@ void setup()
   LOGLN(1, "***** PHYSALIA UM980 SETUP *****");
   LOGLN(1, "********************************");
 
+  setupTaskWatchdog();
+
   // GNSS power rail via Pololu 2810
   pinMode(PIN_GNSS_EN, OUTPUT);
   digitalWrite(PIN_GNSS_EN, HIGH);
@@ -221,7 +287,8 @@ void setup()
   pvtQueue  = xQueueCreate(PVT_QUEUE_DEPTH, sizeof(PvtslnData));
   ggaMutex  = xSemaphoreCreateMutex();
   if (!pvtQueue || !ggaMutex) {
-    Serial.println("FATAL: failed to allocate RTOS primitives – restarting"); // toujours affiché
+    Serial.println("FATAL: failed to allocate RTOS primitives – restarting");
+    feedTaskWatchdog();
     ESP.restart();
   }
   // ──────────────────────────────────────────────────────────────────────────
@@ -238,12 +305,14 @@ void setup()
 
   unsigned long start = millis();
   while (!mqtt.connected() && (millis() - start < ACQUISION_PERIOD_MQTT)) {
+    feedTaskWatchdog();
     LOGLN(1, "Connecting to MQTT...");
     if (mqtt.connect(matUuid, mqttUser, mqttPassword)) {
       LOGLN(1, "MQTT connected");
       break;
     }
     LOGF(1, "MQTT failed with state %d\n", mqtt.state());
+    feedTaskWatchdog();
     delay(1500);
   }
 
@@ -279,6 +348,7 @@ void setup()
 
 void loop()
 {
+  feedTaskWatchdog();
   const unsigned long now = millis();
 
   // Watchdog uniquement en mode deep-sleep : en continu, pas de période d'acquisition à respecter
@@ -327,6 +397,7 @@ void loop()
     esp_deep_sleep_start();
   }
 
+  feedTaskWatchdog();
   delay(5);
 }
 
@@ -337,8 +408,10 @@ void loop()
 void gnssTask(void *param)
 {
   (void)param;
+  registerCurrentTaskToWatchdog("gnssTask");
   for (;;) {
     processGnssSerial();          // drains GNSSSerial RX buffer
+    feedTaskWatchdog();
     vTaskDelay(pdMS_TO_TICKS(1)); // 1 ms yield – keeps Core 0 responsive
   }
 }
@@ -361,6 +434,7 @@ void callback(char* topic, byte* payload, unsigned int length)
 
 boolean reconnect()
 {
+  feedTaskWatchdog();
   if (mqtt.connect(matUuid, mqttUser, mqttPassword)) {
     LOGLN(1, "MQTT reconnected");
     return true;
@@ -391,6 +465,7 @@ void setupGsm()
   digitalWrite(PWR_PIN, LOW);
 
   LOGLN(1, "Initializing modem...");
+  feedTaskWatchdog();
   if (!modem.testAT()) {
     LOGLN(1, "Failed to restart modem, attempting to continue without restarting");
   }
@@ -398,8 +473,10 @@ void setupGsm()
   LOG(1, "Waiting for network...");
   unsigned long start = millis();
   while (!modem.waitForNetwork() && (millis() - start < ACQUISION_PERIOD_4G)) {
+    feedTaskWatchdog();
     LOGLN(1, "fail to find network, waiting 10 sec before retry");
     delay(10000);
+    feedTaskWatchdog();
   }
 
   if (!modem.isNetworkConnected()) {
@@ -416,6 +493,7 @@ void setupGsm()
 #if TINY_GSM_USE_GPRS
   LOG(1, F("Connecting to APN: "));
   LOG(1, apn);
+  feedTaskWatchdog();
   if (!modem.gprsConnect(apn, gprsUser, gprsPass)) {
     LOGLN(1, " fail");
     if (DEEP_SLEEP_ACTIVATED) {
@@ -441,8 +519,10 @@ void maintainNetwork()
     LOGLN(1, "LOOP - Network disconnected");
 
     while (!modem.waitForNetwork() && (millis() - start < ACQUISION_PERIOD_4G)) {
+      feedTaskWatchdog();
       LOGLN(1, "LOOP - fail to find network, waiting 10 sec before retry");
       delay(10000);
+      feedTaskWatchdog();
     }
 
     if (!modem.isNetworkConnected()) {
@@ -462,6 +542,7 @@ void maintainNetwork()
     LOGLN(1, "GPRS disconnected!");
     LOG(1, F("Connecting to "));
     LOGLN(1, apn);
+    feedTaskWatchdog();
     if (!modem.gprsConnect(apn, gprsUser, gprsPass)) {
       LOGLN(1, "GPRS reconnect failed");
       delay(10000);
@@ -485,7 +566,9 @@ void modem_on()
   delay(1010);
   digitalWrite(POWER_PIN, HIGH);
   LOGLN(1, "Waiting till modem ready...");
+  feedTaskWatchdog();
   delay(4510);
+  feedTaskWatchdog();
 }
 
 void modem_off()
@@ -510,6 +593,7 @@ void setupGnss()
   unsigned long start = millis();
   bool receivedSomething = false;
   while (millis() - start < ACQUISION_PERIOD_GNSS) {
+    feedTaskWatchdog();
     processGnssSerial();
     if (lastPvtsln_ms != 0 || lastGGASentence.length() > 0) {
       receivedSomething = true;
@@ -816,7 +900,9 @@ void maintainNtrip()
   }
 
   LOGLN(1, "Could not connect to NTRIP caster. Retrying in 5 seconds.");
+  feedTaskWatchdog();
   delay(5000);
+  feedTaskWatchdog();
 }
 
 void processNtripStream()
@@ -843,6 +929,7 @@ void processNtripStream()
     lastReceivedRTCM_ms = millis();
     // GNSSSerial.write() is safe from Core 1 while Core 0 only reads it
     GNSSSerial.write(rtcmData, rtcmCount);
+    feedTaskWatchdog();
     LOGF(1, "Forwarded %u RTCM bytes to UM980\n", rtcmCount);
   }
 
@@ -1001,4 +1088,3 @@ bool gpsWeekTowToUtcString(uint16_t gpsWeek, uint32_t towMs, int leapSeconds, ch
            milli);
   return true;
 }
-
