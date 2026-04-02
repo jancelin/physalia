@@ -127,7 +127,7 @@ unsigned long lastReconnectAttempt = 0;
 unsigned long lastReceivedRTCM_ms = 0;
 unsigned long lastGgaToCaster_ms = 0;
 unsigned long lastPvtsln_ms = 0;
-long lastState = 0;
+unsigned long lastState = 0;
 
 const unsigned long maxTimeBeforeHangup_ms = 10000UL;
 const size_t GNSS_LINE_BUFFER_SIZE = 1024;
@@ -391,7 +391,7 @@ void setup()
 void loop()
 {
   feedTaskWatchdog();
-  const unsigned long now = millis();
+  unsigned long now = millis();
 
   // Watchdog uniquement en mode deep-sleep : en continu, pas de période d'acquisition à respecter
   if (DEEP_SLEEP_ACTIVATED && lastState != 0 && now - lastState > static_cast<unsigned long>(RTK_ACQUISITION_PERIOD * 1000UL * 1.2f)) {
@@ -415,6 +415,11 @@ void loop()
   maintainNtrip();
   processNtripStream();
   sendPeriodicGGA();
+  
+  // IMPORTANT :
+  // maintainNtrip() peut avoir mis lastState = millis() dans cette même itération.
+  // Il faut donc recalculer "now" après maintainNtrip() pour éviter un wrap-around.
+  now = millis();
 
   if (!mqtt.connected()) {
     if (now - lastReconnectAttempt > 5000) {
@@ -427,10 +432,7 @@ void loop()
     mqtt.loop();
   }
 
-  if (lastState == 0) {
-    lastState = now;
-    LOGF(1, "RTK acquisition window started at %lu\n", now);
-  }
+
 
   if (DEEP_SLEEP_ACTIVATED && lastState != 0 && now - lastState > static_cast<unsigned long>(RTK_ACQUISITION_PERIOD * 1000UL)) {
     LOGLN(1, "Record period done, entering deep sleep");
@@ -509,7 +511,7 @@ void setupGsm()
   LOGLN(1, "Initializing modem...");
   feedTaskWatchdog();
   if (!modem.testAT()) {
-    LOGLN(1, "Failed to restart modem, attempting to continue without restarting");
+    LOGLN(1, "Failed to test modem, attempting to continue without restarting");
   }
 
   LOG(1, "Waiting for network...");
@@ -928,8 +930,17 @@ void maintainNtrip()
   LOGF(1, "Opening socket to %s\n", casterHost);
 
   if (ntripClient.reqRaw(casterHost, casterPort, mountPoint, casterUser, casterUserPW)) {
+    const unsigned long connectedAt = millis();
+
     LOGLN(1, "Connected to NTRIP caster");
-    lastReceivedRTCM_ms = millis();
+    lastReceivedRTCM_ms = connectedAt;
+
+    // Démarre la fenêtre RTK au vrai moment où le flux NTRIP devient disponible
+    if (lastState == 0) {
+      lastState = connectedAt;
+      LOGF(1, "RTK acquisition window started at NTRIP connect: %lu\n", connectedAt);
+    }
+
     return;
   }
 

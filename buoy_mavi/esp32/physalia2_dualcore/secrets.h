@@ -25,7 +25,7 @@ const uint16_t casterPort = 2101 ;
 const char casterUser[] = "mavi";
 const char casterUserPW[] = "mavi";
 const bool transmitLocation = true; //Send gga to caster
-const int SEND_GGA_PERIOD = 15; 
+const int SEND_GGA_PERIOD = 3; 
 
 //MQTT connexion
 const char* mqttServer = "mavi-mqtt.centipede.fr";
@@ -47,7 +47,7 @@ int ACQUISION_PERIOD_MQTT = 8000; // Temps d'acquisition pendant lequel on va ch
 int ACQUISION_PERIOD_GNSS = 5000; // Temps d'acquisition pendant lequel on va chercher le serveur mqtt
 
 // BAT
-int BAT_PERIOD = 3;    // Interval pour envoi de l'état de la batterie (en seconde )
+int BAT_PERIOD = 15;    // Interval pour envoi de l'état de la batterie (en seconde )
 
 // LOG LEVEL  –  0 = rien  |  1 = minimal (état modules, erreurs)  |  2 = complet (payloads, RTCM, GGA)
 int LOG_LEVEL = 1;
