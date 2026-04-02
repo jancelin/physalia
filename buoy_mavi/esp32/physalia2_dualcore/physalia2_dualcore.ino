@@ -36,6 +36,10 @@ Architecture (v2 - dual-core):
 #include <freertos/queue.h>
 #include <freertos/semphr.h>
 
+// Pour desactiver BT
+#if defined(ARDUINO_ARCH_ESP32) && __has_include("esp32-hal-bt.h")
+  #include "esp32-hal-bt.h"
+#endif
 // -------------------------------------------------------------------------------------------------
 // TinyGSM compile-time configuration
 // Must be defined BEFORE including <TinyGsmClient.h>
@@ -214,6 +218,25 @@ int mapPositionTypeToFix(const String &positionType);
 int mapPositionTypeToCarrier(const String &positionType);
 void gnssTask(void *param);
 
+// Pour desactiver BT
+void disableUnusedBluetooth()
+{
+#if defined(ARDUINO_ARCH_ESP32) && __has_include("esp32-hal-bt.h")
+  // Firmware Physalia : Bluetooth non utilisé.
+  // On coupe le contrôleur BT très tôt pour réduire la conso réveillée
+  // et éviter de garder de la RAM occupée inutilement.
+  if (btStarted()) {
+    if (btStop()) {
+      LOGLN(1, "Bluetooth controller stopped");
+    } else {
+      LOGLN(1, "Bluetooth controller stop failed");
+    }
+  } else {
+    LOGLN(1, "Bluetooth already stopped");
+  }
+#endif
+}
+
 // -------------------------------------------------------------------------------------------------
 // Task watchdog (enabled only in deep-sleep mode)
 // -------------------------------------------------------------------------------------------------
@@ -322,6 +345,9 @@ void setup()
   pinMode(PIN_GNSS_EN, OUTPUT);
   digitalWrite(PIN_GNSS_EN, HIGH);
   delay(200);
+  
+  // Pour desactiver BT
+  disableUnusedBluetooth();
 
   // ── Create FreeRTOS primitives BEFORE setupGnss() ─────────────────────────
   pvtQueue  = xQueueCreate(PVT_QUEUE_DEPTH, sizeof(PvtslnData));
