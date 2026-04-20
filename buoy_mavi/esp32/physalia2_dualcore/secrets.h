@@ -37,7 +37,7 @@ const char* mqttbat = "buoy/physalia2-bat";
 
 // DEEP SLEEP CONFIGURATION
 bool DEEP_SLEEP_ACTIVATED = true;     // True = DeepSleep sinon DeepSleep ( off ) captation en continue
-int TIME_TO_SLEEP = 120; // temps de repos en deepsleep.
+int TIME_TO_SLEEP = 600; // temps de repos en deepsleep.
 int RTK_ACQUISITION_PERIOD = 20; //120; // Temps ( en seconde ) pendant lequel on doit capter de la donnée en RTK ( secondes )
 int RTK_MAX_RESEARCH = 60; // Temps max pendant lequel le dispositif recherche du RTK ( secondes )
 #define uS_TO_S_FACTOR 1000000
@@ -47,7 +47,16 @@ int ACQUISION_PERIOD_MQTT = 8000; // Temps d'acquisition pendant lequel on va ch
 int ACQUISION_PERIOD_GNSS = 5000; // Temps d'acquisition pendant lequel on va chercher le serveur mqtt
 
 // BAT
-int BAT_PERIOD = 15;    // Interval pour envoi de l'état de la batterie (en seconde )
+// BAT_PERIOD=8s : 3 mesures dans la fenêtre 20s (t≈8s pic LTE, t≈16s stable, t≈21s pre-sleep)
+int BAT_PERIOD = 8;     // Interval pour envoi de l'état de la batterie (en seconde)
+
+// Tension critique 18650 Li-Ion : ~10% capacité restante. En dessous, alert=true publié.
+// 3600 mV ≈ limite basse pratique (coupure protection vers 3.0V).
+const int VBAT_CRITICAL_MV = 3600;
+
+// Rapport du diviseur résistif sur GPIO35 (100kΩ/100kΩ → facteur 2).
+// Modifier uniquement si le schéma du hardware change.
+const int VBAT_ADC_DIVIDER_RATIO = 2;
 
 // LOG LEVEL  –  0 = rien  |  1 = minimal (état modules, erreurs)  |  2 = complet (payloads, RTCM, GGA)
 int LOG_LEVEL = 1;

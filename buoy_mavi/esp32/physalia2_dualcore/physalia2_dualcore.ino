@@ -87,7 +87,11 @@ Architecture (v2 - dual-core):
 #define IND_PIN   36
 
 // Battery / ADC
-#define ADC_PIN     4
+// LilyGO T-SIM7600G-H R2 : Li-Ion 18650 → diviseur 100kΩ/100kΩ → GPIO35 (ADC1_CH7, input-only).
+// Le rapport du diviseur est configurable via VBAT_ADC_DIVIDER_RATIO dans secrets.h.
+// GPIO4 = PWR_PIN (sortie numérique modem) → ne peut PAS être ADC.
+// AT+CBC lit la tension régulée du modem (~4.1V fixe), inutile pour la décharge Li-Ion.
+#define ADC_PIN     35
 
 // -------------------------------------------------------------------------------------------------
 // TinyGSM
@@ -124,6 +128,31 @@ static bool taskWdtEnabled = false;
 
 RTC_DATA_ATTR uint32_t bootCount = 0;
 RTC_DATA_ATTR uint8_t consecutiveFailureCount = 0;
+
+// -------------------------------------------------------------------------------------------------
+// Battery monitoring – variables persistant en RTC RAM à travers les deep-sleeps
+// -------------------------------------------------------------------------------------------------
+// rtcVbatMinMv   : pire tension brute observée depuis le dernier boot froid.
+//                  Révèle la tension sous charge maximale, indicateur de fin de vie.
+// rtcVbatEmaMv   : EMA asymétrique (α_down=1/8, α_up=1/4, τ≈80/40 min à 10 min sleep).
+//                  Tendance lente de décharge et détection rapide de recharge solaire.
+// rtcVbatPrevEmaMv : EMA du cycle précédent → permet de calculer vbat_delta_mv.
+//                    Positif = recharge, Négatif = décharge.
+// rtcVbatEmaInit : false uniquement au boot froid ; évite d'initialiser l'EMA avec 0.
+RTC_DATA_ATTR int32_t  rtcVbatMinMv     = 9999;
+RTC_DATA_ATTR int32_t  rtcVbatEmaMv     = 0;
+RTC_DATA_ATTR int32_t  rtcVbatPrevEmaMv = 0;
+RTC_DATA_ATTR bool     rtcVbatEmaInit   = false;
+
+// cycleVbatMinMv : minimum de tension observé pendant le cycle en cours.
+// Réinitialisé à chaque réveil (variable non-RTC, pas besoin de persistance).
+// Représente la pire tension sous charge du cycle courant → courbe de décharge réelle.
+static int32_t cycleVbatMinMv = 9999;
+
+// Caractéristiques de calibration ADC (calculées une fois dans setupBatteryCalibration,
+// utilisées dans readVbatMv() à chaque réveil).
+static esp_adc_cal_characteristics_t adcChars;
+static bool adcCalibrated = false;
 
 int vref = 1100;
 uint32_t timeStamp = 0;
@@ -211,6 +240,9 @@ void processGnssLine(const char *line);
 void sendPeriodicGGA();
 void publishFix(const PvtslnData &fix);
 void publishBatteryIfDue(const char *datetimeValue);
+int32_t readVbatMv();
+void publishPreSleepVbat();
+void publishNtripConnectVbat();
 bool parsePvtslnLine(const char *line, PvtslnData &out);
 bool gpsWeekTowToUtcString(uint16_t gpsWeek, uint32_t towMs, int leapSeconds, char *out, size_t outSize);
 int splitCsv(char *str, char **tokens, int maxTokens);
@@ -462,6 +494,7 @@ void loop()
 
   if (DEEP_SLEEP_ACTIVATED && lastState != 0 && now - lastState > static_cast<unsigned long>(RTK_ACQUISITION_PERIOD * 1000UL)) {
     LOGLN(1, "Record period done, entering deep sleep");
+    publishPreSleepVbat(); // mesure sous charge max avant extinction modem
     modem_off();
     delay(2000);
     esp_deep_sleep_start();
@@ -880,6 +913,77 @@ void publishFix(const PvtslnData &fix)
   LOGLN(2, msg);
 }
 
+// -------------------------------------------------------------------------------------------------
+// readVbatMv() – lecture robuste de la tension LiPo via GPIO35 (diviseur 100k/100k)
+//
+// Stratégie :
+//   16 échantillons bruts → tri insertion → médiane des 8 centraux (rejet 4 min + 4 max)
+//   → calibration esp_adc_cal → ×2 (diviseur)
+//
+// L'ADC ESP32 est non-linéaire aux extrêmes et bruité.
+// La médiane sur 16 échantillons élimine les spikes (modem TX, WiFi, etc.)
+// sans alourdir le calcul. Durée totale : ~2 ms.
+// -------------------------------------------------------------------------------------------------
+int32_t readVbatMv()
+{
+  static const uint8_t N       = 16; // nombre d'échantillons
+  static const uint8_t TRIM    = 4;  // échantillons rejetés de chaque côté
+  static const uint8_t KEPT    = N - 2 * TRIM; // 8 échantillons utilisés pour la médiane
+
+  uint32_t samples[N];
+
+  // Acquisition
+  for (uint8_t i = 0; i < N; i++) {
+    samples[i] = static_cast<uint32_t>(analogRead(ADC_PIN));
+    delayMicroseconds(200); // laisser l'ADC se stabiliser entre les lectures
+  }
+
+  // Tri insertion (rapide pour N=16)
+  for (uint8_t i = 1; i < N; i++) {
+    const uint32_t key = samples[i];
+    int8_t j = static_cast<int8_t>(i) - 1;
+    while (j >= 0 && samples[j] > key) {
+      samples[j + 1] = samples[j];
+      j--;
+    }
+    samples[j + 1] = key;
+  }
+
+  // Médiane des KEPT valeurs centrales
+  uint64_t sum = 0;
+  for (uint8_t i = TRIM; i < N - TRIM; i++) {
+    sum += samples[i];
+  }
+  const uint32_t rawMedian = static_cast<uint32_t>(sum / KEPT);
+
+  // Conversion via calibration eFuse (ou fallback 1100 mV)
+  uint32_t halfVbatMv;
+  if (adcCalibrated) {
+    halfVbatMv = esp_adc_cal_raw_to_voltage(rawMedian, &adcChars);
+  } else {
+    // Fallback linéaire brut (moins précis, utilisé si calibration non disponible)
+    halfVbatMv = static_cast<uint32_t>((rawMedian * 3300UL) / 4095UL);
+  }
+
+  // Multiplication par le rapport du diviseur résistif (configurable dans secrets.h)
+  return static_cast<int32_t>(halfVbatMv * static_cast<uint32_t>(VBAT_ADC_DIVIDER_RATIO));
+}
+
+// -------------------------------------------------------------------------------------------------
+// publishBatteryIfDue() – publiée à intervalles réguliers pendant l'acquisition
+//
+// Payload MQTT (topic mqttbat) :
+//   vbat_mv          : tension brute médiane courante (GPIO35, calibrée)
+//   vbat_ema_mv      : EMA asymétrique (α_down=1/8, α_up=1/4)
+//   vbat_delta_mv    : EMA_courante - EMA_cycle_précédent (>0=recharge, <0=décharge)
+//   vbat_min_mv      : pire tension absolue depuis boot froid (historique multi-jours)
+//   vbat_min_cycle_mv: pire tension du cycle en cours (courbe de décharge au cycle)
+//   boot_count       : numéro de cycle depuis le boot froid (corrélation cycle/tension)
+//   charge_state     : 0=décharge, 1=en charge, 2=plein (AT+CBC, détecte USB/solaire)
+//   pre_sleep        : false (distingue des mesures avant extinction – topic identique)
+//   alert            : true si tension < VBAT_CRITICAL_MV (3600 mV ≈ 10% Li-Ion 18650)
+//   trigger          : "periodic" (origine de la mesure)
+// -------------------------------------------------------------------------------------------------
 void publishBatteryIfDue(const char *datetimeValue)
 {
   if (!mqtt.connected()) {
@@ -892,26 +996,57 @@ void publishBatteryIfDue(const char *datetimeValue)
 
   timeStamp = millis();
 
-  int8_t chargeState = 0;
-  int8_t percent = 0;
-  int16_t milliVolts = 0;
-  modem.getBattStats(chargeState, percent, milliVolts);
-
-  float mv = milliVolts / 1000.0F;
-  if (mv == 0.0f) {
-    LOGLN(1, "Bad battery value");
+  // Lecture tension Li-Ion via GPIO35
+  const int32_t vbatMv = readVbatMv();
+  if (vbatMv < 2000 || vbatMv > 5000) {
+    LOGF(1, "Vbat hors plage ignorée: %d mV\n", static_cast<int>(vbatMv));
     return;
   }
 
-  StaticJsonDocument<256> doc;
-  doc["capteur"]      = matUuid;
-  doc["datetime"]     = datetimeValue;
-  doc["voltage_v"]    = mv;
-  doc["milli_volts"]  = milliVolts;
-  doc["charge_state"] = chargeState;
-  if (percent >= 0) {
-    doc["percent"] = percent;
+  // Mise à jour minimum du cycle courant
+  if (vbatMv < cycleVbatMinMv) {
+    cycleVbatMinMv = vbatMv;
   }
+
+  // Mise à jour minimum absolu (pire tension historique depuis boot froid)
+  if (vbatMv < rtcVbatMinMv) {
+    rtcVbatMinMv = vbatMv;
+  }
+
+  // EMA asymétrique : α_down=1/8 (τ≈80min), α_up=1/4 (τ≈40min)
+  // Réaction plus rapide à la hausse → détection de recharge solaire.
+  // Réaction plus lente à la baisse → lissage du bruit de décharge.
+  rtcVbatPrevEmaMv = rtcVbatEmaMv; // snapshot avant mise à jour pour vbat_delta_mv
+  if (!rtcVbatEmaInit) {
+    rtcVbatEmaMv   = vbatMv;
+    rtcVbatEmaInit = true;
+  } else if (vbatMv >= rtcVbatEmaMv) {
+    rtcVbatEmaMv = rtcVbatEmaMv + (vbatMv - rtcVbatEmaMv) / 4;  // hausse rapide (recharge)
+  } else {
+    rtcVbatEmaMv = rtcVbatEmaMv + (vbatMv - rtcVbatEmaMv) / 8;  // baisse lente (décharge)
+  }
+
+  const int32_t vbatDeltaMv = rtcVbatEmaMv - rtcVbatPrevEmaMv;
+
+  // Charge state via AT+CBC (valide pour détecter solaire/USB branché)
+  int8_t chargeState = 0;
+  int8_t percent     = 0;
+  int16_t modemMv    = 0;
+  modem.getBattStats(chargeState, percent, modemMv);
+
+  StaticJsonDocument<448> doc;
+  doc["capteur"]           = matUuid;
+  doc["datetime"]          = datetimeValue;
+  doc["vbat_mv"]           = vbatMv;
+  doc["vbat_ema_mv"]       = static_cast<int32_t>(rtcVbatEmaMv);
+  doc["vbat_delta_mv"]     = vbatDeltaMv;
+  doc["vbat_min_mv"]       = static_cast<int32_t>(rtcVbatMinMv);
+  doc["vbat_min_cycle_mv"] = static_cast<int32_t>(cycleVbatMinMv);
+  doc["boot_count"]        = static_cast<uint32_t>(bootCount);
+  doc["charge_state"]      = chargeState;
+  doc["pre_sleep"]         = false;
+  doc["alert"]             = (vbatMv < VBAT_CRITICAL_MV);
+  doc["trigger"]           = "periodic";
 
   String msg;
   serializeJson(doc, msg);
@@ -923,6 +1058,160 @@ void publishBatteryIfDue(const char *datetimeValue)
   }
 
   LOGLN(1, "Battery publish OK");
+  LOGF(1, "  vbat=%d mV  ema=%d mV  delta=%+d mV  min_cycle=%d mV  min=%d mV  charge=%d  alert=%d\n",
+       static_cast<int>(vbatMv),
+       static_cast<int>(rtcVbatEmaMv),
+       static_cast<int>(vbatDeltaMv),
+       static_cast<int>(cycleVbatMinMv),
+       static_cast<int>(rtcVbatMinMv),
+       static_cast<int>(chargeState),
+       static_cast<int>(vbatMv < VBAT_CRITICAL_MV));
+  LOGLN(2, msg);
+}
+
+// -------------------------------------------------------------------------------------------------
+// publishPreSleepVbat() – mesure juste AVANT l'extinction du modem
+//
+// Appelée depuis loop() avant modem_off() + esp_deep_sleep_start().
+// trigger="pre_sleep" permet à Node-RED de distinguer cette série des mesures périodiques
+// et de la stocker dans un champ DB séparé si souhaité.
+// -------------------------------------------------------------------------------------------------
+void publishPreSleepVbat()
+{
+  if (!mqtt.connected()) {
+    return;
+  }
+
+  const int32_t vbatMv = readVbatMv();
+  if (vbatMv < 2000 || vbatMv > 5000) {
+    LOGF(1, "Pre-sleep Vbat hors plage ignorée: %d mV\n", static_cast<int>(vbatMv));
+    return;
+  }
+
+  // Mise à jour des minimums (pre-sleep capture souvent le pire du cycle)
+  if (vbatMv < cycleVbatMinMv) {
+    cycleVbatMinMv = vbatMv;
+  }
+  if (vbatMv < rtcVbatMinMv) {
+    rtcVbatMinMv = vbatMv;
+  }
+
+  const int32_t vbatDeltaMv = rtcVbatEmaMv - rtcVbatPrevEmaMv;
+
+  // datetime : utiliser le dernier fix valide disponible
+  const char *dt = (lastFix.valid && lastFix.datetime[0] != '\0')
+                   ? lastFix.datetime
+                   : "unknown";
+
+  int8_t chargeState = 0;
+  int8_t percent     = 0;
+  int16_t modemMv    = 0;
+  modem.getBattStats(chargeState, percent, modemMv);
+
+  StaticJsonDocument<448> doc;
+  doc["capteur"]           = matUuid;
+  doc["datetime"]          = dt;
+  doc["vbat_mv"]           = vbatMv;
+  doc["vbat_ema_mv"]       = static_cast<int32_t>(rtcVbatEmaMv);
+  doc["vbat_delta_mv"]     = vbatDeltaMv;
+  doc["vbat_min_mv"]       = static_cast<int32_t>(rtcVbatMinMv);
+  doc["vbat_min_cycle_mv"] = static_cast<int32_t>(cycleVbatMinMv);
+  doc["boot_count"]        = static_cast<uint32_t>(bootCount);
+  doc["charge_state"]      = chargeState;
+  doc["pre_sleep"]         = true;
+  doc["alert"]             = (vbatMv < VBAT_CRITICAL_MV);
+  doc["trigger"]           = "pre_sleep";
+
+  String msg;
+  serializeJson(doc, msg);
+
+  if (!mqtt.publish(mqttbat, msg.c_str())) {
+    LOGF(1, "MQTT pre-sleep bat publish failed, state=%d\n", mqtt.state());
+    return;
+  }
+
+  LOGLN(1, "Pre-sleep battery publish OK");
+  LOGF(1, "  vbat=%d mV  ema=%d mV  delta=%+d mV  min_cycle=%d mV  min=%d mV  charge=%d  alert=%d\n",
+       static_cast<int>(vbatMv),
+       static_cast<int>(rtcVbatEmaMv),
+       static_cast<int>(vbatDeltaMv),
+       static_cast<int>(cycleVbatMinMv),
+       static_cast<int>(rtcVbatMinMv),
+       static_cast<int>(chargeState),
+       static_cast<int>(vbatMv < VBAT_CRITICAL_MV));
+  LOGLN(2, msg);
+}
+
+// -------------------------------------------------------------------------------------------------
+// publishNtripConnectVbat() – mesure au moment du pic de courant LTE (connexion NTRIP)
+//
+// La connexion 4G initiale (reqRaw) tire jusqu'à 500 mA → c'est le moment où la tension
+// LiPo est la plus basse du cycle. Cette mesure capture systématiquement le sag de démarrage,
+// que publishPreSleepVbat() manquait dans 54% des cycles (V1 < V3 observé dans les données).
+//
+// Appelée depuis maintainNtrip() juste après la connexion réussie au caster.
+// trigger="ntrip_connect" permet de filtrer cette série séparément en Node-RED.
+// -------------------------------------------------------------------------------------------------
+void publishNtripConnectVbat()
+{
+  if (!mqtt.connected()) {
+    return;
+  }
+
+  const int32_t vbatMv = readVbatMv();
+  if (vbatMv < 2000 || vbatMv > 5000) {
+    LOGF(1, "NTRIP-connect Vbat hors plage: %d mV\n", static_cast<int>(vbatMv));
+    return;
+  }
+
+  // Mise à jour des minimums – ce moment est souvent le pire du cycle
+  if (vbatMv < cycleVbatMinMv) {
+    cycleVbatMinMv = vbatMv;
+  }
+  if (vbatMv < rtcVbatMinMv) {
+    rtcVbatMinMv = vbatMv;
+  }
+
+  const int32_t vbatDeltaMv = rtcVbatEmaMv - rtcVbatPrevEmaMv;
+
+  const char *dt = (lastFix.valid && lastFix.datetime[0] != '\0')
+                   ? lastFix.datetime
+                   : "unknown";
+
+  int8_t chargeState = 0;
+  int8_t percent     = 0;
+  int16_t modemMv    = 0;
+  modem.getBattStats(chargeState, percent, modemMv);
+
+  StaticJsonDocument<448> doc;
+  doc["capteur"]           = matUuid;
+  doc["datetime"]          = dt;
+  doc["vbat_mv"]           = vbatMv;
+  doc["vbat_ema_mv"]       = static_cast<int32_t>(rtcVbatEmaMv);
+  doc["vbat_delta_mv"]     = vbatDeltaMv;
+  doc["vbat_min_mv"]       = static_cast<int32_t>(rtcVbatMinMv);
+  doc["vbat_min_cycle_mv"] = static_cast<int32_t>(cycleVbatMinMv);
+  doc["boot_count"]        = static_cast<uint32_t>(bootCount);
+  doc["charge_state"]      = chargeState;
+  doc["pre_sleep"]         = false;
+  doc["alert"]             = (vbatMv < VBAT_CRITICAL_MV);
+  doc["trigger"]           = "ntrip_connect";
+
+  String msg;
+  serializeJson(doc, msg);
+
+  if (!mqtt.publish(mqttbat, msg.c_str())) {
+    LOGF(1, "MQTT ntrip-connect bat publish failed, state=%d\n", mqtt.state());
+    return;
+  }
+
+  LOGLN(1, "NTRIP-connect battery publish OK");
+  LOGF(1, "  vbat=%d mV  ema=%d mV  delta=%+d mV  min_cycle=%d mV  alert=%d\n",
+       static_cast<int>(vbatMv),
+       static_cast<int>(rtcVbatEmaMv),
+       static_cast<int>(vbatDeltaMv),
+       static_cast<int>(cycleVbatMinMv),
+       static_cast<int>(vbatMv < VBAT_CRITICAL_MV));
   LOGLN(2, msg);
 }
 
@@ -932,7 +1221,7 @@ int mapPositionTypeToFix(const String &positionType)
   if (positionType == "PSRDIFF" || positionType == "SBAS") return 2;
   if (positionType == "SINGLE") return 3;
   if (positionType.indexOf("FLOAT") >= 0) return 4;
-  if (positionType.indexOf("INT") >= 0) return 4;
+  if (positionType.indexOf("INT") >= 0) return 5;  // RTK fix entier : distingué de FLOAT(4)
   return 3;
 }
 
@@ -960,6 +1249,9 @@ void maintainNtrip()
 
     LOGLN(1, "Connected to NTRIP caster");
     lastReceivedRTCM_ms = connectedAt;
+
+    // Mesure batterie immédiate : pic de courant LTE au moment de la connexion
+    publishNtripConnectVbat();
 
     // Démarre la fenêtre RTK au vrai moment où le flux NTRIP devient disponible
     if (lastState == 0) {
@@ -1051,21 +1343,37 @@ void sendPeriodicGGA()
 
 void setupBatteryCalibration()
 {
-  esp_adc_cal_characteristics_t adc_chars;
-  esp_adc_cal_value_t val_type = esp_adc_cal_characterize(
+  // GPIO35 est input-only sur l'ESP32 : pas de pinMode() nécessaire.
+  // L'atténuation 11dB couvre 0-3.3V → parfait pour VBAT/2 (max ~2.1V à 4.2V Li-Ion).
+  analogSetPinAttenuation(ADC_PIN, ADC_11db);
+
+  const esp_adc_cal_value_t val_type = esp_adc_cal_characterize(
       ADC_UNIT_1,
       ADC_ATTEN_DB_11,
       ADC_WIDTH_BIT_12,
       1100,
-      &adc_chars);
+      &adcChars);
+
+  adcCalibrated = true;
 
   if (val_type == ESP_ADC_CAL_VAL_EFUSE_VREF) {
-    LOGF(1, "eFuse Vref:%u mV\n", adc_chars.vref);
-    vref = adc_chars.vref;
+    LOGF(1, "ADC cal: eFuse Vref=%u mV (GPIO%d, diviseur ×%d)\n",
+         adcChars.vref, ADC_PIN, VBAT_ADC_DIVIDER_RATIO);
+    vref = adcChars.vref;
   } else if (val_type == ESP_ADC_CAL_VAL_EFUSE_TP) {
-    LOGF(1, "Two Point --> coeff_a:%umV coeff_b:%umV\n", adc_chars.coeff_a, adc_chars.coeff_b);
+    LOGF(1, "ADC cal: Two Point coeff_a=%u coeff_b=%u (GPIO%d, diviseur ×%d)\n",
+         adcChars.coeff_a, adcChars.coeff_b, ADC_PIN, VBAT_ADC_DIVIDER_RATIO);
   } else {
-    LOGLN(1, "Default Vref: 1100mV");
+    LOGF(1, "ADC cal: Default Vref 1100mV (GPIO%d, diviseur ×%d)\n",
+         ADC_PIN, VBAT_ADC_DIVIDER_RATIO);
+  }
+
+  // Lecture de vérification immédiate au boot pour détecter un problème de diviseur
+  const int32_t bootVbat = readVbatMv();
+  LOGF(1, "ADC check: Vbat@boot=%d mV (attendu 3600-4250 mV pour 18650 nominal)\n",
+       static_cast<int>(bootVbat));
+  if (bootVbat < 2000 || bootVbat > 5000) {
+    LOGLN(1, "ADC WARN: tension hors plage – vérifier diviseur sur GPIO35");
   }
 }
 
@@ -1107,6 +1415,11 @@ void print_wakeup_reason()
       break;
     default:
       LOGF(1, "Réveil pas causé par le Deep Sleep: %d\n", source_reveil);
+      // Boot froid (power-on ou reset manuel) : réinitialiser l'historique batterie.
+      rtcVbatMinMv     = 9999;
+      rtcVbatEmaMv     = 0;
+      rtcVbatPrevEmaMv = 0;
+      rtcVbatEmaInit   = false;
       break;
   }
 }
