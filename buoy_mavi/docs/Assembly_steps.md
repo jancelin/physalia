@@ -120,7 +120,7 @@ Physalia Instalation Protocol
 	+ Weld 5V to ESP32 5V
 	+ Weld GND to ESP32 GND
 	+ Weld B4 to ESP32 I²C SCL
-	+ Weld B5 to ESP32 I²C SD0
+	+ Weld B5 to ESP32 I²C SD0/SDA
 - Edit secret.h
 	+ Set WiFi credentials (describe)
 	+ Set MQTT server info (describe)
