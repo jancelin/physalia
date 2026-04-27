@@ -142,6 +142,8 @@ bool isRtkFixedType(const String &type);
 bool isRtkFloatType(const String &type);
 bool publishCycleAndStatus(const char *status);
 void gnssTask(void *param);
+void drainPvtQueueToBatch();
+void powerOffGnssAfterAcquisition();
 
 // =============================================================================
 // SETUP
@@ -223,13 +225,7 @@ void loop()
   unsigned long now = millis();
 
   // Vide la queue PVT produite par gnssTask (Core 0) dans le batch local.
-  {
-    PvtslnData fix;
-    while (xQueueReceive(pvtQueue, &fix, 0) == pdTRUE) {
-      appendFixSample(fix);
-      publishBatteryIfDue(fix.datetime);  // échantillonne localement, ne publie pas encore
-    }
-  }
+  drainPvtQueueToBatch();
 
   maintainNetwork();
   maintainNtrip();
@@ -268,10 +264,20 @@ void loop()
     safeDeepSleep();
   }
 
-  // Fin nominale : 5 s d'acquisition utile après premier RTK FIX.
+  // Fin nominale : 5 s d acquisition utile après premier RTK FIX.
   if (DEEP_SLEEP_ACTIVATED && rtkFixStart_ms != 0 &&
       now - rtkFixStart_ms > (unsigned long)RTK_ACQUISITION_PERIOD * 1000UL) {
-    LOGLN(1, "RTK FIX record period done – publish batch and deep sleep");
+    LOGLN(1, "RTK FIX record period done - GNSS off, publish batch and deep sleep");
+
+    // Dernière vidange de la queue avant coupure UM980 : les positions sont déjà en RAM.
+    drainPvtQueueToBatch();
+    feedTaskWatchdog();
+    delay(25);
+    drainPvtQueueToBatch();
+
+    // À partir d ici, l acquisition est terminée : on économise l UM980 pendant MQTT.
+    powerOffGnssAfterAcquisition();
+
     failureSleepCount       = 0;
     consecutiveFailureCount = 0;
     publishPreSleepVbat();
@@ -284,6 +290,39 @@ void loop()
 }
 
 // =============================================================================
+// =============================================================================
+// ACQUISITION HELPERS
+// =============================================================================
+void drainPvtQueueToBatch()
+{
+  if (!pvtQueue) return;
+
+  PvtslnData fix;
+  while (xQueueReceive(pvtQueue, &fix, 0) == pdTRUE) {
+    appendFixSample(fix);
+    publishBatteryIfDue(fix.datetime);  // échantillonne localement, ne publie pas encore
+  }
+}
+
+void powerOffGnssAfterAcquisition()
+{
+  static bool gnssOffAfterAcq = false;
+  if (gnssOffAfterAcq) return;
+  gnssOffAfterAcq = true;
+
+  // Le flux RTCM n est plus utile après la fenêtre de mesure.
+  if (ntripClient.connected()) {
+    ntripClient.stop();
+    LOGLN(1, "NTRIP stopped after acquisition");
+  }
+
+  GNSSSerial.flush();
+  pinMode(PIN_GNSS_EN, OUTPUT);
+  digitalWrite(PIN_GNSS_EN, LOW);
+  LOGF(1, "UM980 powered off after acquisition at %lu ms\n",
+       (unsigned long)(millis() - bootStarted_ms));
+}
+
 // GNSS TASK  (Core 0 – lecture UART uniquement, jamais de réseau)
 // =============================================================================
 void gnssTask(void *param)
