@@ -76,6 +76,12 @@ PHYSALIA – fichier de configuration utilisateur
 #define PH_MODEM_POWEROFF_TIMEOUT_MS   5000UL
 #define PH_PERIODIC_MODEM_RESET_CYCLES 144UL
 
+// Demarrage modem optimise : eviter le blocage de 10 s de modem.testAT() au boot.
+#define PH_MODEM_AT_SYNC_TIMEOUT_MS       2500UL
+#define PH_MODEM_AT_ATTEMPT_TIMEOUT_MS     300UL
+#define PH_MODEM_NETWORK_POLL_MS          2000UL
+#define PH_MODEM_NETWORK_RETRY_DELAY_MS    150UL
+
 // --- Log : 0=silence | 1=minimal | 2=complet ---
 #define PH_LOG_LEVEL 1
 

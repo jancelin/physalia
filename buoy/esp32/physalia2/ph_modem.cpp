@@ -8,6 +8,61 @@ void handleFailureCycleAndSleep(const char *stage);
 void feedTaskWatchdog();
 
 // -------------------------------------------------------------------------------------------------
+// fastModemAtSync() - synchronisation AT courte, sans blocage 10 s
+// -------------------------------------------------------------------------------------------------
+static bool fastModemAtSync(uint32_t timeoutMs)
+{
+  const unsigned long start = millis();
+  uint8_t attempts = 0;
+
+  while ((millis() - start) < timeoutMs) {
+    feedTaskWatchdog();
+    attempts++;
+
+    if (modem.testAT(PH_MODEM_AT_ATTEMPT_TIMEOUT_MS)) {
+      LOGF(1, "Modem AT sync OK in %lu ms (%u attempts)\n",
+           (unsigned long)(millis() - start), attempts);
+      return true;
+    }
+
+    feedTaskWatchdog();
+    delay(100);
+  }
+
+  LOGF(1, "Modem AT sync not ready after %lu ms - continue network attach\n",
+       (unsigned long)(millis() - start));
+  return false;
+}
+
+// -------------------------------------------------------------------------------------------------
+// waitForNetworkEnergyAware() - attachement LTE par tranches courtes, sans pause fixe de 10 s
+// -------------------------------------------------------------------------------------------------
+static bool waitForNetworkEnergyAware(uint32_t totalTimeoutMs)
+{
+  const unsigned long start = millis();
+
+  while ((millis() - start) < totalTimeoutMs) {
+    feedTaskWatchdog();
+
+    const unsigned long elapsed = millis() - start;
+    const uint32_t remaining = (elapsed >= totalTimeoutMs) ? 0UL : (totalTimeoutMs - elapsed);
+    const uint32_t slice = min((uint32_t)PH_MODEM_NETWORK_POLL_MS, remaining);
+    if (slice == 0) break;
+
+    if (modem.waitForNetwork(slice)) {
+      LOGF(1, "Network connected in %lu ms after attach start\n",
+           (unsigned long)(millis() - start));
+      return true;
+    }
+
+    feedTaskWatchdog();
+    delay(PH_MODEM_NETWORK_RETRY_DELAY_MS);
+  }
+
+  return modem.isNetworkConnected();
+}
+
+// -------------------------------------------------------------------------------------------------
 // periodicModemHardReset() – reset hardware toutes les 24h
 //
 // Le SIM7600 peut accumuler des états corrompus après plusieurs jours :
@@ -106,22 +161,16 @@ void setupGsm()
   digitalWrite(PWR_PIN, HIGH); delay(500);
   digitalWrite(PWR_PIN, LOW);
 
-  LOGLN(1, "Initializing modem...");
+  LOGLN(1, "Initializing modem (fast attach)...");
   feedTaskWatchdog();
-  if (!modem.testAT()) {
-    LOGLN(1, "modem.testAT() failed – continuing anyway");
-  }
+
+  // Ancien comportement : modem.testAT() utilisait le timeout par défaut (~10 s).
+  // Sur le terrain, ce test échouait puis le réseau se connectait quand même.
+  // On remplace donc ce blocage par une synchronisation AT courte puis un polling LTE.
+  fastModemAtSync(PH_MODEM_AT_SYNC_TIMEOUT_MS);
 
   LOG(1, "Waiting for network...");
-  unsigned long start = millis();
-  // BUG CORRIGÉ : ACQUISION_PERIOD_4G est en secondes, millis() en ms → * 1000UL
-  while (!modem.waitForNetwork(10000L) &&
-         (millis() - start < (unsigned long)ACQUISION_PERIOD_4G * 1000UL)) {
-    feedTaskWatchdog();
-    LOGLN(1, "fail to find network, retrying in 10 s");
-    delay(10000);
-    feedTaskWatchdog();
-  }
+  waitForNetworkEnergyAware((uint32_t)ACQUISION_PERIOD_4G * 1000UL);
 
   if (!modem.isNetworkConnected()) {
     LOGLN(1, "Network connection failed");
@@ -149,15 +198,8 @@ void maintainNetwork()
 {
   if (!modem.isNetworkConnected()) {
     LOGLN(1, "LOOP - Network disconnected");
-    unsigned long start = millis();
-    // BUG CORRIGÉ : * 1000UL
-    while (!modem.waitForNetwork(10000L) &&
-           (millis() - start < (unsigned long)ACQUISION_PERIOD_4G * 1000UL)) {
-      feedTaskWatchdog();
-      LOGLN(1, "LOOP - fail to find network, retrying in 10 s");
-      delay(10000);
-      feedTaskWatchdog();
-    }
+    // Reconnexion par tranches courtes, sans pause fixe de 10 s.
+    waitForNetworkEnergyAware((uint32_t)ACQUISION_PERIOD_4G * 1000UL);
 
     if (!modem.isNetworkConnected()) {
       if (DEEP_SLEEP_ACTIVATED) {
