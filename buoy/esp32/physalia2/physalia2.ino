@@ -119,6 +119,7 @@ void periodicModemHardReset();
 void setupGsm();
 void maintainNetwork();
 void modem_on();
+void modemPowerStartEarly();
 void modem_off();
 void setupGnss();
 void processGnssSerial();
@@ -182,6 +183,11 @@ void setup()
   digitalWrite(PIN_GNSS_EN, HIGH);
   delay(200);
 
+  // Démarrage LTE le plus tôt possible, sans modifier le reste du cycle validé.
+  // La séquence SIM7600 démarre pendant que le setup prépare RTOS/GNSS/batterie.
+  periodicModemHardReset();
+  modemPowerStartEarly();
+
   disableUnusedBluetooth();
 
   pvtQueue = xQueueCreate(PVT_QUEUE_DEPTH, sizeof(PvtslnData));
@@ -204,7 +210,6 @@ void setup()
   xTaskCreatePinnedToCore(gnssTask, "gnssTask", 4096, nullptr, 2, nullptr, 0);
   LOGLN(1, "GNSS task started on Core 0");
 
-  periodicModemHardReset();
   setupGsm();
   recordBatterySample("lte", nullptr);
 

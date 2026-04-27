@@ -7,6 +7,38 @@
 void handleFailureCycleAndSleep(const char *stage);
 void feedTaskWatchdog();
 
+// État local : séquence de mise sous tension SIM7600 lancée tôt depuis setup().
+static bool modemPowerStartedEarly = false;
+static unsigned long modemPowerEarly_ms = 0;
+
+// -------------------------------------------------------------------------------------------------
+// modemPowerStartEarly() – démarrage matériel SIM7600 le plus tôt possible
+// -------------------------------------------------------------------------------------------------
+void modemPowerStartEarly()
+{
+  if (modemPowerStartedEarly) return;
+
+  SerialAT.begin(UART_BAUD, SERIAL_8N1, PIN_RX, PIN_TX);
+
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, HIGH);
+
+  pinMode(POWER_PIN, OUTPUT);
+  digitalWrite(POWER_PIN, HIGH);
+
+  pinMode(PWR_PIN, OUTPUT);
+  digitalWrite(PWR_PIN, HIGH);
+  feedTaskWatchdog();
+  delay(500);
+  feedTaskWatchdog();
+  digitalWrite(PWR_PIN, LOW);
+
+  modemPowerStartedEarly = true;
+  modemPowerEarly_ms = millis();
+  LOGF(1, "SIM7600 early power sequence started at %lu ms\n",
+       (unsigned long)modemPowerEarly_ms);
+}
+
 // -------------------------------------------------------------------------------------------------
 // fastModemAtSync() - synchronisation AT courte, sans blocage 10 s
 // -------------------------------------------------------------------------------------------------
@@ -153,15 +185,15 @@ void modem_off()
 void setupGsm()
 {
   delay(10);
-  SerialAT.begin(UART_BAUD, SERIAL_8N1, PIN_RX, PIN_TX);
 
-  pinMode(LED_PIN,   OUTPUT); digitalWrite(LED_PIN,   HIGH);
-  pinMode(POWER_PIN, OUTPUT); digitalWrite(POWER_PIN, HIGH);
-  pinMode(PWR_PIN,   OUTPUT);
-  digitalWrite(PWR_PIN, HIGH); delay(500);
-  digitalWrite(PWR_PIN, LOW);
+  if (!modemPowerStartedEarly) {
+    // Secours : conserve le comportement fonctionnel historique si setup()
+    // n’a pas déjà lancé la séquence matérielle.
+    modemPowerStartEarly();
+  }
 
-  LOGLN(1, "Initializing modem (fast attach)...");
+  LOGF(1, "Initializing modem (early fast attach, powered %lu ms ago)...\n",
+       (unsigned long)(millis() - modemPowerEarly_ms));
   feedTaskWatchdog();
 
   // Ancien comportement : modem.testAT() utilisait le timeout par défaut (~10 s).
