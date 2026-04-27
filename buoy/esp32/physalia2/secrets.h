@@ -42,11 +42,11 @@ PHYSALIA – fichier de configuration utilisateur
 #define PH_MQTT_TOPIC_GEO     "buoy/physalia2-geo"
 #define PH_MQTT_TOPIC_BAT     "buoy/physalia2-bat"
 #define PH_MQTT_TOPIC_STATUS  "buoy/physalia2-status"
-#define PH_MQTT_BUFFER_SIZE   2048       // publications unitaires compatibles Node-RED/PostgreSQL.
+#define PH_MQTT_BUFFER_SIZE   2048       // buffer prudent: geo_batch_v2 compact x5 + fallback x2/unitaire.
 
 // --- Batching mesure ---
 #define PH_FIX_BATCH_MAX_RECORDS       300   // 60 s à 5 Hz. En cas de dépassement, les plus anciens sont supprimés.
-#define PH_GEO_BATCH_CHUNK_RECORDS       1   // 1 = publication unitaire fiable, compatible ancien flux Node-RED.
+#define PH_GEO_BATCH_CHUNK_RECORDS       5   // geo_batch_v2 compact: 5 positions/message; fallback objet x2 puis unitaire si echec.
 #define PH_BATTERY_BATCH_MAX_RECORDS     8   // boot, LTE/intermédiaire, pre_sleep, diagnostics éventuels
 
 // --- Deep-sleep / acquisition ---
