@@ -51,7 +51,7 @@ PHYSALIA – fichier de configuration utilisateur
 
 // --- Deep-sleep / acquisition ---
 #define PH_DEEP_SLEEP_ACTIVATED    true
-#define PH_TIME_TO_SLEEP           600   // secondes de sommeil nominal
+#define PH_TIME_TO_SLEEP           900   // secondes de sommeil nominal
 #define PH_RTK_ACQUISITION_PERIOD  5     // secondes après RTK FIX confirmé
 #define PH_RTK_MAX_RESEARCH        60    // secondes max entre connexion NTRIP et RTK FIX
 #define uS_TO_S_FACTOR             1000000ULL
