@@ -3,22 +3,33 @@
 // Geo batch compact v2: fields[] + samples[] arrays, champs inutiles supprimés.
 // Fallback robuste: compact x5 -> batch objet x2 -> unitaire.
 // =============================================================================
+// PATCH P1 — mapPositionTypeToFix / mapPositionTypeToCarrier
+// Signatures const char* au lieu de const String&.
+// Comparaisons : ==  →  strcmp()  |  indexOf() →  strstr()
+// ArduinoJson sérialise char[] nativement : aucun changement requis dans les
+// fonctions addFixFieldsToJson / addFixFieldsToCompactRow.
+// =============================================================================
 #include "ph_globals.h"
 
-int mapPositionTypeToFix(const String &t)
+// [P1] const char* + strcmp/strstr — plus d'allocation String temporaire
+int mapPositionTypeToFix(const char *t)
 {
-  if (t == "NONE") return 0;
-  if (t == "PSRDIFF" || t == "SBAS") return 2;
-  if (t == "SINGLE") return 3;
-  if (t.indexOf("FLOAT") >= 0) return 4;
-  if (t.indexOf("INT") >= 0) return 5;
+  if (!t || t[0] == '\0')             return 3;
+  if (strcmp(t, "NONE")    == 0)      return 0;
+  if (strcmp(t, "PSRDIFF") == 0
+   || strcmp(t, "SBAS")    == 0)      return 2;
+  if (strcmp(t, "SINGLE")  == 0)      return 3;
+  if (strstr(t, "FLOAT")   != nullptr) return 4;
+  if (strstr(t, "INT")     != nullptr) return 5;
   return 3;
 }
 
-int mapPositionTypeToCarrier(const String &t)
+// [P1] const char* + strstr
+int mapPositionTypeToCarrier(const char *t)
 {
-  if (t.indexOf("FLOAT") >= 0) return 1;
-  if (t.indexOf("INT") >= 0) return 2;
+  if (!t || t[0] == '\0')              return 0;
+  if (strstr(t, "FLOAT") != nullptr)   return 1;
+  if (strstr(t, "INT")   != nullptr)   return 2;
   return 0;
 }
 

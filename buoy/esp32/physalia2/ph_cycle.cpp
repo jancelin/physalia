@@ -1,19 +1,26 @@
 // =============================================================================
 // ph_cycle.cpp – Stockage local des positions et détection d'état RTK
 // =============================================================================
+// PATCH P1 — signatures adaptées de String& → const char*
+// isRtkFixedType / isRtkFloatType utilisent strstr() sur char[] au lieu de
+// String::indexOf(). Pas de surcharge String conservée : les deux seuls
+// appelants (appendFixSample ici, et ph_mqtt.cpp) passent maintenant le
+// tableau char[] directement.
+// =============================================================================
 #include "ph_globals.h"
 
-int mapPositionTypeToFix(const String &t);
-int mapPositionTypeToCarrier(const String &t);
+int mapPositionTypeToFix(const char *t);
+int mapPositionTypeToCarrier(const char *t);
 
-bool isRtkFixedType(const String &type)
+// [P1] const char* — strstr() remplace String::indexOf()
+bool isRtkFixedType(const char *type)
 {
-  return type.indexOf("INT") >= 0;
+  return type && (strstr(type, "INT") != nullptr);
 }
 
-bool isRtkFloatType(const String &type)
+bool isRtkFloatType(const char *type)
 {
-  return type.indexOf("FLOAT") >= 0;
+  return type && (strstr(type, "FLOAT") != nullptr);
 }
 
 void appendFixSample(const PvtslnData &fix)
@@ -31,10 +38,11 @@ void appendFixSample(const PvtslnData &fix)
     fixBatch[fixBatchCount++] = fix;
   }
 
+  // [P1] fix.bestposType est maintenant char[] → appel direct sans .c_str()
   if (isRtkFloatType(fix.bestposType) && firstFloat_ms == 0) {
     firstFloat_ms = millis();
     LOGF(1, "[RTK] First FLOAT at %lu ms: %s\n",
-         (unsigned long)firstFloat_ms, fix.bestposType.c_str());
+         (unsigned long)firstFloat_ms, fix.bestposType);
   }
 
   if (isRtkFixedType(fix.bestposType)) {
@@ -42,11 +50,11 @@ void appendFixSample(const PvtslnData &fix)
     if (firstFix_ms == 0) {
       firstFix_ms = now;
       LOGF(1, "[RTK] First FIX at %lu ms: %s\n",
-           (unsigned long)firstFix_ms, fix.bestposType.c_str());
+           (unsigned long)firstFix_ms, fix.bestposType);
     }
     if (rtkFixStart_ms == 0) {
       rtkFixStart_ms = now;
-      lastState = now;  // compatibilité avec les traces historiques
+      lastState = now;
       LOGF(1, "[RTK] Acquisition window starts after FIX at %lu ms\n",
            (unsigned long)rtkFixStart_ms);
     }

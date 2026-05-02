@@ -3,15 +3,29 @@
 // ph_globals.h – Déclarations extern de toutes les variables globales.
 // Les DÉFINITIONS sont dans physalia2_dualcore.ino.
 // =============================================================================
+// PATCH P1 — String → char[] dans PvtslnData
+// Problème : String bestposType / headingType allouent dynamiquement en DRAM
+// interne à chaque cycle. Sur 50 000 cycles/an, la fragmentation heap FreeRTOS
+// devient irréversible et provoque des crashes OOM aléatoires en déploiement
+// H24/365j, impossibles à reproduire en labo (heap non compacté sur ESP32).
+// Correction : tableaux char[] à taille fixe (taille 32 couvre tous les types
+// Novatel : "NARROW_INT", "WIDE_INT", "FLOAT", "PSRDIFF", "SINGLE"…).
+// Impact sur les appelants :
+//   ph_gnss.cpp  : affectation  =  →  strncpy()
+//   ph_cycle.cpp : indexOf()    →  strstr()     signatures const char *
+//   ph_mqtt.cpp  : indexOf()/== →  strstr()/strcmp()   signatures const char *
+// =============================================================================
 
 #include "ph_config.h"
 #include "secrets.h"
 #include "NTRIPClient.h"
 
 struct PvtslnData {
-  bool   valid       = false;
+  bool   valid        = false;
   char   datetime[32] = {0};
-  String bestposType;
+  // [P1] String → char[32] : élimine les allocations dynamiques par cycle.
+  // Taille 32 couvre tous les types Novatel connus (ex: "NARROW_INT" = 10 chars).
+  char   bestposType[32] = {0};
   double lat        = 0.0;
   double lon        = 0.0;
   double altMSL     = 0.0;
@@ -24,7 +38,8 @@ struct PvtslnData {
   float  latStd     = 0.0f;
   float  lonStd     = 0.0f;
   float  diffAge    = 0.0f;
-  String headingType;
+  // [P1] String → char[32]
+  char   headingType[32] = {0};
   float  headingLength = 0.0f;
   float  headingDeg    = 0.0f;
   float  headingPitch  = 0.0f;

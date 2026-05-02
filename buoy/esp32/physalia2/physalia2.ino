@@ -139,8 +139,8 @@ void recordBatterySample(const char *stage, const char *datetimeValue = nullptr)
 void setupDeepSleep();
 void print_wakeup_reason();
 void appendFixSample(const PvtslnData &fix);
-bool isRtkFixedType(const String &type);
-bool isRtkFloatType(const String &type);
+bool isRtkFixedType(const char *type);  // [P1] char* — ph_cycle.cpp
+bool isRtkFloatType(const char *type);  // [P1] char* — ph_cycle.cpp
 bool publishCycleAndStatus(const char *status);
 void gnssTask(void *param);
 void drainPvtQueueToBatch();

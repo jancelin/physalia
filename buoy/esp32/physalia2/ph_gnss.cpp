@@ -74,7 +74,10 @@ bool parsePvtslnLine(const char *line, PvtslnData &out)
   if (!gpsWeekTowToUtcString(gpsWeek, towMs, leapSecs, out.datetime, sizeof(out.datetime)))
     strncpy(out.datetime, "1970-01-01 00:00:00.000", sizeof(out.datetime) - 1);
 
-  out.bestposType     = pTok[0];
+  // [P1] strncpy() au lieu de operator= sur String : pas d'allocation heap.
+  // La taille 32 est garantie suffisante (cf. ph_globals.h).
+  strncpy(out.bestposType, pTok[0], sizeof(out.bestposType) - 1);
+  out.bestposType[sizeof(out.bestposType) - 1] = '\0';
   out.altMSL          = strtod(pTok[1],  nullptr);
   out.lat             = strtod(pTok[2],  nullptr);
   out.lon             = strtod(pTok[3],  nullptr);
@@ -91,7 +94,9 @@ bool parsePvtslnLine(const char *line, PvtslnData &out)
   out.velNorth        = strtod(pTok[17], nullptr);
   out.velEast         = strtod(pTok[18], nullptr);
   out.velGround       = strtod(pTok[19], nullptr);
-  out.headingType     = pTok[20];
+  // [P1] strncpy() au lieu de operator= sur String.
+  strncpy(out.headingType, pTok[20], sizeof(out.headingType) - 1);
+  out.headingType[sizeof(out.headingType) - 1] = '\0';
   out.headingLength   = strtof(pTok[21], nullptr);
   out.headingDeg      = strtof(pTok[22], nullptr);
   out.headingPitch    = strtof(pTok[23], nullptr);
