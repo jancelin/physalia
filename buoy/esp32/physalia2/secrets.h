@@ -74,7 +74,7 @@ PHYSALIA – fichier de configuration utilisateur
 
 // --- Modem ---
 #define PH_MODEM_POWEROFF_TIMEOUT_MS   5000UL
-#define PH_PERIODIC_MODEM_RESET_CYCLES 144UL
+#define PH_PERIODIC_MODEM_RESET_CYCLES 48UL  // reset ~12h au lieu de ~37h (144UL)
 
 // Demarrage modem optimise : eviter le blocage de 10 s de modem.testAT() au boot.
 #define PH_MODEM_AT_SYNC_TIMEOUT_MS       2500UL

@@ -228,6 +228,14 @@ void setupGsm()
 // -------------------------------------------------------------------------------------------------
 void maintainNetwork()
 {
+  // PATCH anti-hang SIM7600G : si le modem ne répond plus aux AT,
+  // hard reset immédiat sans attendre le compteur périodique.
+  // Réaction en 1 cycle (~15 min) au lieu de 12h (ou anciennement 37h).
+  if (!modem.testAT(500)) {
+    LOGLN(1, "Modem AT hang detected – forcing hard reset");
+    cyclesSinceModemReset = PERIODIC_MODEM_RESET_CYCLES; // force le reset
+    periodicModemHardReset();
+  }
   if (!modem.isNetworkConnected()) {
     LOGLN(1, "LOOP - Network disconnected");
     // Reconnexion par tranches courtes, sans pause fixe de 10 s.
