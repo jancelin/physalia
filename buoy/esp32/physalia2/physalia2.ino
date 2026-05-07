@@ -75,6 +75,8 @@ PvtslnData lastFix;
 PvtslnData fixBatch[PH_FIX_BATCH_MAX_RECORDS];
 uint16_t fixBatchCount = 0;
 uint32_t fixBatchDropped = 0;
+uint16_t   fixBatchHead    = 0;   // [P6]
+uint16_t   fixBatchTail    = 0;   // [P6]
 
 // --- Batterie : batch local publié en fin de cycle ---
 BatterySample batterySamples[PH_BATTERY_BATCH_MAX_RECORDS];
@@ -242,8 +244,8 @@ void loop()
     publishCycleAndStatus("continuous");
     lastContinuousPublish_ms = millis();
     fixBatchCount = 0;  // repart à zéro pour le prochain bloc
-    //fixBatchHead  = 0; // a decommenter pour patch P6
-    //fixBatchTail  = 0; // a decommenter pour patch P6
+    fixBatchHead  = 0;  // patch P6
+    fixBatchTail  = 0;  // patch P6
   }
   maintainNetwork();
   maintainNtrip();

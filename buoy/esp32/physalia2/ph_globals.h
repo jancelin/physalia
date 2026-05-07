@@ -98,6 +98,9 @@ extern PvtslnData fixBatch[PH_FIX_BATCH_MAX_RECORDS];
 extern uint16_t fixBatchCount;
 extern uint32_t fixBatchDropped;
 
+extern uint16_t   fixBatchHead;   // [P6] index lecture buffer circulaire
+extern uint16_t   fixBatchTail;   // [P6] index écriture buffer circulaire
+
 extern BatterySample batterySamples[PH_BATTERY_BATCH_MAX_RECORDS];
 extern uint8_t batterySampleCount;
 

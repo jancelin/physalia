@@ -27,16 +27,20 @@ void appendFixSample(const PvtslnData &fix)
 {
   if (!fix.valid) return;
 
-  if (fixBatchCount >= PH_FIX_BATCH_MAX_RECORDS) {
-    // Conservation chronologique : on perd le plus ancien, jamais le plus récent.
-    for (uint16_t i = 1; i < PH_FIX_BATCH_MAX_RECORDS; i++) {
-      fixBatch[i - 1] = fixBatch[i];
-    }
-    fixBatch[PH_FIX_BATCH_MAX_RECORDS - 1] = fix;
+  // [P6] Buffer circulaire O(1) — supprime le décalage O(n×36kB) de l'original.
+  // Quand le buffer est plein, écrase le plus ancien (head avance).
+  const uint16_t nextTail = (fixBatchTail + 1) % PH_FIX_BATCH_MAX_RECORDS;
+
+  if (nextTail == fixBatchHead) {
+    // Buffer plein : on perd le plus ancien
+    fixBatchHead = (fixBatchHead + 1) % PH_FIX_BATCH_MAX_RECORDS;
     fixBatchDropped++;
   } else {
-    fixBatch[fixBatchCount++] = fix;
+    fixBatchCount++;
   }
+
+  fixBatch[fixBatchTail] = fix;
+  fixBatchTail = nextTail;
 
   // [P1] fix.bestposType est maintenant char[] → appel direct sans .c_str()
   if (isRtkFloatType(fix.bestposType) && firstFloat_ms == 0) {
