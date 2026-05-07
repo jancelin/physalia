@@ -226,12 +226,25 @@ void setup()
 // =============================================================================
 void loop()
 {
+  static unsigned long lastContinuousPublish_ms = 0;
   feedTaskWatchdog();
   unsigned long now = millis();
 
   // Vide la queue PVT produite par gnssTask (Core 0) dans le batch local.
   drainPvtQueueToBatch();
-
+  
+  // PATCH mode continu : publication périodique toutes les 5s
+  // Actif uniquement quand DEEP_SLEEP_ACTIVATED = false
+  if (!DEEP_SLEEP_ACTIVATED
+      && fixBatchCount >= PH_GEO_BATCH_CHUNK_RECORDS
+      && millis() - lastContinuousPublish_ms >= 5000UL) {
+    if (!mqtt.connected()) reconnect();
+    publishCycleAndStatus("continuous");
+    lastContinuousPublish_ms = millis();
+    fixBatchCount = 0;  // repart à zéro pour le prochain bloc
+    //fixBatchHead  = 0; // a decommenter pour patch P6
+    //fixBatchTail  = 0; // a decommenter pour patch P6
+  }
   maintainNetwork();
   maintainNtrip();
   processNtripStream();
