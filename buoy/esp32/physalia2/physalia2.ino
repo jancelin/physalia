@@ -75,8 +75,8 @@ PvtslnData lastFix;
 PvtslnData fixBatch[PH_FIX_BATCH_MAX_RECORDS];
 uint16_t fixBatchCount = 0;
 uint32_t fixBatchDropped = 0;
-uint16_t   fixBatchHead    = 0;   // [P6]
-uint16_t   fixBatchTail    = 0;   // [P6]
+uint16_t fixBatchHead    = 0;   // [P6]
+uint16_t fixBatchTail    = 0;   // [P6]
 
 // --- Batterie : batch local publié en fin de cycle ---
 BatterySample batterySamples[PH_BATTERY_BATCH_MAX_RECORDS];
@@ -234,19 +234,6 @@ void loop()
 
   // Vide la queue PVT produite par gnssTask (Core 0) dans le batch local.
   drainPvtQueueToBatch();
-  
-  // PATCH mode continu : publication périodique toutes les 5s
-  // Actif uniquement quand DEEP_SLEEP_ACTIVATED = false
-  if (!DEEP_SLEEP_ACTIVATED
-      && fixBatchCount >= PH_GEO_BATCH_CHUNK_RECORDS
-      && millis() - lastContinuousPublish_ms >= 5000UL) {
-    if (!mqtt.connected()) reconnect();
-    publishCycleAndStatus("continuous");
-    lastContinuousPublish_ms = millis();
-    fixBatchCount = 0;  // repart à zéro pour le prochain bloc
-    fixBatchHead  = 0;  // patch P6
-    fixBatchTail  = 0;  // patch P6
-  }
   maintainNetwork();
   maintainNtrip();
   processNtripStream();
@@ -256,6 +243,21 @@ void loop()
 
   // MQTT n'est utilisé qu'après acquisition ; si déjà connecté, maintenir la session.
   if (mqtt.connected()) mqtt.loop();
+
+  // PATCH mode continu : publication périodique toutes les 5s
+  // Actif uniquement quand DEEP_SLEEP_ACTIVATED = false
+  if (!DEEP_SLEEP_ACTIVATED
+      && fixBatchCount >= PH_GEO_BATCH_CHUNK_RECORDS
+      && millis() - lastContinuousPublish_ms >= 5000UL) {
+    if (!mqtt.connected()) reconnect();
+    cycleClosed = false; // reset le verrou one-shot avant chaque publish continu
+    publishCycleAndStatus("continuous");
+    lastContinuousPublish_ms = millis();
+    fixBatchCount = 0;   // repart à zéro pour le prochain bloc
+    fixBatchHead  = 0;   // patch P6
+    fixBatchTail  = 0;   // patch P6
+    batterySampleCount = 0; // évite la re-publication des mêmes samples batterie
+  }
 
   // Sécurité : si l'UM980 ne produit pas de GGA exploitable assez vite.
   if (DEEP_SLEEP_ACTIVATED && firstGga_ms == 0 &&
