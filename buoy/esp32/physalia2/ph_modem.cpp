@@ -241,11 +241,7 @@ void maintainNetwork()
       delay(4000); feedTaskWatchdog();
     }
     LOGLN(1, "LOOP - Network disconnected");
-  if (!modem.isNetworkConnected()) {
-    LOGLN(1, "LOOP - Network disconnected");
-    // Reconnexion par tranches courtes, sans pause fixe de 10 s.
-    waitForNetworkEnergyAware((uint32_t)ACQUISION_PERIOD_4G * 1000UL);
-
+    
     if (!modem.isNetworkConnected()) {
       if (DEEP_SLEEP_ACTIVATED) {
         LOGLN(1, "LOOP - 4G timeout, deep sleep");

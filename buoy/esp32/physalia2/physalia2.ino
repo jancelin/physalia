@@ -166,7 +166,7 @@ void setup()
   // Protection boucle de restart rapide
   {
     const uint32_t nowMs = (uint32_t)millis();
-if (lastBootWasRestart && lastRestartTimestampMs > 0) {
+    if (lastBootWasRestart && lastRestartTimestampMs > 0) {
       // [FIX Bug2] Après ESP.restart(), millis() repart de 0.
       // La soustraction uint32 (0 - 25000) = 4 294 942 396 → jamais < 30000.
       // On détecte ce cas : si nowMs < lastRestartTimestampMs, on est
@@ -176,7 +176,7 @@ if (lastBootWasRestart && lastRestartTimestampMs > 0) {
           ((nowMs - lastRestartTimestampMs) < 30000UL);
       if (withinWindow) {
         LOGF(1, "Rapid restart loop detected (%lu ms) – forcing deep sleep\n",
-             (unsigned long)elapsed);
+             (unsigned long)lastRestartTimestampMs);
         lastBootWasRestart     = false;
         consecutiveFailureCount = 0;
         esp_sleep_enable_timer_wakeup((uint64_t)TIME_TO_SLEEP * uS_TO_S_FACTOR);
