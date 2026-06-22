@@ -228,14 +228,19 @@ void setupGsm()
 // -------------------------------------------------------------------------------------------------
 void maintainNetwork()
 {
-  // PATCH anti-hang SIM7600G : si le modem ne répond plus aux AT,
-  // hard reset immédiat sans attendre le compteur périodique.
-  // Réaction en 1 cycle (~15 min) au lieu de 12h (ou anciennement 37h).
-  if (!modem.testAT(500)) {
-    LOGLN(1, "Modem AT hang detected – forcing hard reset");
-    cyclesSinceModemReset = PERIODIC_MODEM_RESET_CYCLES; // force le reset
-    periodicModemHardReset();
-  }
+  if (!modem.isNetworkConnected()) {
+    // [FIX Bug1] testAT uniquement si réseau absent : évite les faux positifs
+    // quand le flux RTCM masque la réponse AT, déclenchant des resets inutiles.
+    if (!modem.testAT(500)) {
+      LOGLN(1, "Modem AT hang detected – forcing hard reset");
+      cyclesSinceModemReset = PERIODIC_MODEM_RESET_CYCLES;
+      periodicModemHardReset();
+      // [FIX Bug1] Attendre que le modem soit prêt après hard reset (~8s)
+      // avant de tenter isNetworkConnected() / waitForNetwork()
+      feedTaskWatchdog(); delay(4000); feedTaskWatchdog();
+      delay(4000); feedTaskWatchdog();
+    }
+    LOGLN(1, "LOOP - Network disconnected");
   if (!modem.isNetworkConnected()) {
     LOGLN(1, "LOOP - Network disconnected");
     // Reconnexion par tranches courtes, sans pause fixe de 10 s.
@@ -257,7 +262,9 @@ void maintainNetwork()
     LOG(1, F("Connecting to ")); LOGLN(1, apn);
     feedTaskWatchdog();
     if (!modem.gprsConnect(apn, gprsUser, gprsPass)) {
-      LOGLN(1, "GPRS reconnect failed"); delay(10000); return;
+      LOGLN(1, "GPRS reconnect failed");  // [FIX Bug3] WDT nourri
+      feedTaskWatchdog(); delay(3000); feedTaskWatchdog();
+      return;
     }
     if (modem.isGprsConnected()) LOGLN(1, "GPRS reconnected");
   }
