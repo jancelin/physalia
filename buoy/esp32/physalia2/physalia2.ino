@@ -177,8 +177,17 @@ void setup()
       if (withinWindow) {
         LOGF(1, "Rapid restart loop detected (%lu ms) – forcing deep sleep\n",
              (unsigned long)lastRestartTimestampMs);
-        lastBootWasRestart     = false;
+        lastBootWasRestart      = false;
         consecutiveFailureCount = 0;
+        // Coupure hardware modem OBLIGATOIRE avant sleep.
+        // AT non disponible (modem non init), on coupe directement PWR_PIN.
+        // Sans ça, le SIM7600 reste alimenté, perturbe modemPowerStartEarly()
+        // au réveil suivant et verrouille le système en boucle infinie.
+        pinMode(PWR_PIN, OUTPUT);
+        digitalWrite(PWR_PIN, LOW);
+        delay(1600);                // > 1.5s = power-off garanti (spec SIM7600)
+        digitalWrite(PWR_PIN, HIGH);
+        delay(300);
         esp_sleep_enable_timer_wakeup((uint64_t)TIME_TO_SLEEP * uS_TO_S_FACTOR);
         esp_deep_sleep_start();
       }

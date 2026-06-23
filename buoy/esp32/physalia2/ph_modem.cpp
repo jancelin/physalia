@@ -6,6 +6,7 @@
 // forward
 void handleFailureCycleAndSleep(const char *stage);
 void feedTaskWatchdog();
+void safeDeepSleep();
 
 // État local : séquence de mise sous tension SIM7600 lancée tôt depuis setup().
 static bool modemPowerStartedEarly = false;
@@ -232,16 +233,18 @@ void maintainNetwork()
     // [FIX Bug1] testAT uniquement si réseau absent : évite les faux positifs
     // quand le flux RTCM masque la réponse AT, déclenchant des resets inutiles.
     if (!modem.testAT(500)) {
-      LOGLN(1, "Modem AT hang detected – forcing hard reset");
+      LOGLN(1, "Modem AT hang detected – forcing hard reset, sleeping to recover");
       cyclesSinceModemReset = PERIODIC_MODEM_RESET_CYCLES;
       periodicModemHardReset();
-      // [FIX Bug1] Attendre que le modem soit prêt après hard reset (~8s)
-      // avant de tenter isNetworkConnected() / waitForNetwork()
-      feedTaskWatchdog(); delay(4000); feedTaskWatchdog();
-      delay(4000); feedTaskWatchdog();
+      // Le modem met 15-20s à booter après hard reset.
+      // Inutile d'attendre 8s et de tenter isNetworkConnected() (toujours false).
+      // On dort directement sans compter de failure : le prochain cycle
+      // trouvera le modem propre et prêt.
+      if (DEEP_SLEEP_ACTIVATED) safeDeepSleep();
+      return;  // mode continu : on revient dans loop() sans compter d'échec
     }
     LOGLN(1, "LOOP - Network disconnected");
-    
+
     if (!modem.isNetworkConnected()) {
       if (DEEP_SLEEP_ACTIVATED) {
         LOGLN(1, "LOOP - 4G timeout, deep sleep");
